@@ -24,8 +24,8 @@ The product-template shipped with hardcoded cryptographic material:
 ```bash
 JWT_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvAIBADAN...
 JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkq...
-ENCRYPT_KEY=0nrwHF1aZQIy5xuTM9rg5v8KNvPkrxpBCYKebZ00/rM=
-ENCRYPT_IV=68ygEy8/4JkAS1dN+pq9VA==
+ENCRYPT_KEY=<redacted-old-hardcoded-key>
+ENCRYPT_IV=<redacted-old-hardcoded-iv>
 ```
 
 **Impact:**
@@ -81,8 +81,8 @@ Compromise one → Access all!
 ```bash
 JWT_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvAIBADAN... (hardcoded)
 JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkq... (hardcoded)
-ENCRYPT_KEY=0nrwHF1aZQIy5xuTM9rg5v8KNvPkrxpBCYKebZ00/rM= (hardcoded)
-ENCRYPT_IV=68ygEy8/4JkAS1dN+pq9VA== (hardcoded)
+ENCRYPT_KEY=<redacted-old-hardcoded-key> (hardcoded)
+ENCRYPT_IV=<redacted-old-hardcoded-iv> (hardcoded)
 ```
 
 **After (SECURE):**

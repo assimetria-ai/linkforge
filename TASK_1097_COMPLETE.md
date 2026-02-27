@@ -33,8 +33,8 @@ The file contained:
 ```bash
 JWT_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n[2048-bit RSA key]...
 JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n[2048-bit RSA key]...
-ENCRYPT_KEY=0nrwHF1aZQIy5xuTM9rg5v8KNvPkrxpBCYKebZ00/rM=  # Old hardcoded AES key
-ENCRYPT_IV=68ygEy8/4JkAS1dN+pq9VA==  # Old hardcoded AES IV
+ENCRYPT_KEY=<redacted-old-hardcoded-key>  # Old hardcoded AES key
+ENCRYPT_IV=<redacted-old-hardcoded-iv>  # Old hardcoded AES IV
 ```
 
 **Impact:**

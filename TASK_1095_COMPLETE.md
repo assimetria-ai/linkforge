@@ -88,7 +88,7 @@ $ git log --all -S "DMcBMXmx/1uMg+mvZ6mhNLcA9DZygeU9hLuGAP2sQms="
 (no output)  # Current key NOT in git ✅
 
 # Search for old hardcoded ENCRYPT_KEY
-$ git log --all -S "0nrwHF1aZQIy5xuTM9rg5v8KNvPkrxpBCYKebZ00/rM="
+$ git log --all -S "<redacted-old-hardcoded-key>"
 05892a3 security: rotate hardcoded cryptographic keys in server/.env (Task #1020)
 8c77036 security: delete .env.backup-insecure from filesystem (Task #1097)
 ```

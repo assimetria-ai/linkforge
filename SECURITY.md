@@ -267,8 +267,8 @@ Attacker compromises Product A → Obtains keys
 # server/.env
 JWT_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBg...
 JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhki...
-ENCRYPT_KEY=0nrwHF1aZQIy5xuTM9rg5v8KNvPkrxpBCYKebZ00/rM=
-ENCRYPT_IV=68ygEy8/4JkAS1dN+pq9VA==
+ENCRYPT_KEY=<redacted-old-hardcoded-key>
+ENCRYPT_IV=<redacted-old-hardcoded-iv>
 ```
 
 **After (SECURE):**
@@ -1185,8 +1185,8 @@ server/.env.backup-insecure
 ```bash
 JWT_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n[Old 2048-bit RSA key]...
 JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n[Old 2048-bit RSA key]...
-ENCRYPT_KEY=0nrwHF1aZQIy5xuTM9rg5v8KNvPkrxpBCYKebZ00/rM=  # Old hardcoded
-ENCRYPT_IV=68ygEy8/4JkAS1dN+pq9VA==  # Old hardcoded
+ENCRYPT_KEY=<redacted-old-hardcoded-key>  # Old hardcoded
+ENCRYPT_IV=<redacted-old-hardcoded-iv>  # Old hardcoded
 ```
 
 #### Why This is Critical
@@ -1391,7 +1391,7 @@ $ git log --all -S "DMcBMXmx/1uMg+mvZ6mhNLcA9DZygeU9hLuGAP2sQms="
 
 **Old hardcoded keys (pre-rotation):**
 ```bash
-$ git log --all -S "0nrwHF1aZQIy5xuTM9rg5v8KNvPkrxpBCYKebZ00/rM="
+$ git log --all -S "<redacted-old-hardcoded-key>"
 05892a3 security: rotate hardcoded cryptographic keys (Task #1020)
 8c77036 security: delete .env.backup-insecure (Task #1097)
 ```
