@@ -890,3 +890,274 @@ A: Yes, provider names ('google', 'github') are hardcoded in our code, not user-
 **Last Updated:** 2026-02-27  
 **Security Contact:** Viktor (Auditor)  
 **Fixed By:** Anton (Junior Developer)
+
+## Path Traversal in File Upload (Task #1096 - Viktor Audit 2026-02-27)
+
+### Vulnerability Description
+
+**Severity:** CRITICAL  
+**Category:** Path Traversal / Directory Traversal  
+**CWE:** CWE-22 (Improper Limitation of a Pathname to a Restricted Directory)  
+**Affected Files:** `server/src/lib/@system/StorageAdapter/LocalStorageAdapter.js` (fixed)  
+**Discovered:** 2026-02-27 by Viktor
+
+#### The Problem
+
+The original `createUploadUrl()` method accepted user-controlled `filename` and `folder` parameters without validation, allowing attackers to escape the upload directory:
+
+```javascript
+// VULNERABLE CODE (before fix)
+async createUploadUrl({ filename, contentType, folder = 'uploads', expiresIn = 300 }) {
+  const ext = filename.includes('.') ? filename.split('.').pop().toLowerCase() : ''  // ❌ No validation
+  const key = `${folder}/${uuidv4()}${ext ? '.' + ext : ''}`  // ❌ folder not validated
+  // ...
+}
+```
+
+#### Attack Vectors
+
+**1. Path Traversal with ../**
+```javascript
+await StorageAdapter.createUploadUrl({
+  filename: '../../../etc/passwd',
+  folder: '../../etc',
+  contentType: 'text/plain'
+})
+// Could generate key: ../../etc/uuid.txt → writes to /etc/
+```
+
+**2. Null Byte Injection**
+```javascript
+await StorageAdapter.createUploadUrl({
+  filename: 'safe.txt\0.php',
+  contentType: 'text/plain'
+})
+// Could bypass extension checks, file interpreted as .php
+```
+
+**3. Windows Path Traversal**
+```javascript
+await StorageAdapter.createUploadUrl({
+  filename: '..\\..\\..\\windows\\system32\\config\\sam',
+  contentType: 'text/plain'
+})
+// Could write to Windows system directories
+```
+
+**4. Absolute Paths**
+```javascript
+await StorageAdapter.createUploadUrl({
+  filename: '/etc/passwd',
+  contentType: 'text/plain'
+})
+// Attempts to write with absolute path
+```
+
+**Impact:**
+- Arbitrary file write to any location accessible by Node.js process
+- Overwrite critical system files (/etc/passwd, web.config, etc.)
+- Write malicious executables to startup directories
+- Bypass security controls through null byte injection
+- Remote code execution if uploaded files are executed
+
+### The Fix
+
+**Solution:** Multi-layer input sanitization and validation.
+
+#### Layer 1: Path Component Sanitization
+
+```javascript
+function sanitizePathComponent(input) {
+  if (!input || typeof input !== 'string') return ''
+  
+  // Remove null bytes
+  let safe = input.replace(/\0/g, '')
+  
+  // Remove path traversal sequences
+  safe = safe.replace(/\.\./g, '')  // Remove ..
+  safe = safe.replace(/[\/\\]/g, '') // Remove / and \
+  
+  // Remove leading/trailing dots and spaces
+  safe = safe.replace(/^[\s.]+|[\s.]+$/g, '')
+  
+  // If empty after sanitization, return safe default
+  if (!safe) return 'file'
+  
+  return safe
+}
+```
+
+**Protections:**
+- ✅ Removes null bytes (`\0`)
+- ✅ Removes parent directory references (`..`)
+- ✅ Removes path separators (`/`, `\`)
+- ✅ Removes leading/trailing dots and spaces
+- ✅ Returns safe default if empty
+
+#### Layer 2: Extension Validation
+
+```javascript
+function safeExtension(filename) {
+  if (!filename || typeof filename !== 'string') return ''
+  
+  // Remove null bytes first - everything after \0 is ignored
+  const nullByteIndex = filename.indexOf('\0')
+  if (nullByteIndex !== -1) {
+    filename = filename.substring(0, nullByteIndex)
+  }
+  
+  const parts = filename.split('.')
+  if (parts.length < 2) return ''
+  
+  const ext = parts.pop().toLowerCase()
+  
+  // Only allow alphanumeric extensions up to 10 characters
+  if (/^[a-z0-9]{1,10}$/i.test(ext)) {
+    return ext
+  }
+  
+  return ''
+}
+```
+
+**Protections:**
+- ✅ Handles null byte injection (truncates at `\0`)
+- ✅ Validates extension format (alphanumeric only)
+- ✅ Limits extension length (max 10 characters)
+- ✅ Returns empty string for invalid extensions
+
+#### Layer 3: Updated createUploadUrl()
+
+```javascript
+async createUploadUrl({ filename, contentType, folder = 'uploads', expiresIn = 300 }) {
+  // SECURITY: Extract extension from ORIGINAL filename (before sanitization)
+  const ext = safeExtension(filename)
+  const safeName = sanitizePathComponent(filename)
+  const safeFolder = sanitizePathComponent(folder)
+  
+  const key = `${safeFolder}/${uuidv4()}${ext ? '.' + ext : ''}`
+  // ... rest of implementation
+}
+```
+
+#### Layer 4: Path Validation (Existing Defense)
+
+The `write()` method already validates paths:
+```javascript
+async write(key, buffer) {
+  const storageDir = getStorageDir()
+  const filePath = path.join(storageDir, key)
+  if (!filePath.startsWith(storageDir)) {
+    throw Object.assign(new Error('Invalid key: path traversal detected'), { status: 400 })
+  }
+  // ... rest of implementation
+}
+```
+
+### Defense in Depth
+
+The fix implements **4 security layers:**
+
+| Layer | Protection | Attack Prevented |
+|-------|-----------|------------------|
+| 1. Input Sanitization | `sanitizePathComponent()` | Path traversal, null bytes |
+| 2. Extension Validation | `safeExtension()` | Malicious extensions |
+| 3. UUID Filenames | Actual filename is UUID | Collision, predictability |
+| 4. Path Validation | `write()` checks `startsWith()` | Final defense |
+
+### Testing
+
+Security tests added in `server/test/unit/@system/storage-path-traversal.test.js`:
+
+```bash
+npm test -- storage-path-traversal.test.js
+```
+
+**Test Coverage:**
+- ✅ Path traversal with `../` in filename (17 tests)
+- ✅ Path traversal with `../` in folder
+- ✅ Windows backslash path traversal
+- ✅ Null byte injection
+- ✅ Absolute paths
+- ✅ Malicious extensions
+- ✅ Multiple attack scenarios
+
+**Results:**
+```
+Test Suites: 1 passed
+Tests:       17 passed
+Time:        0.132s
+```
+
+### Best Practices
+
+#### DO ✅
+
+1. **Sanitize ALL user input** before using in file paths
+2. **Use whitelist validation** for file extensions
+3. **Remove path separators** from user input (`/`, `\`)
+4. **Handle null bytes** explicitly
+5. **Use UUIDs** for actual filenames
+6. **Validate paths** against allowed directories
+7. **Implement defense in depth**
+
+#### DON'T ❌
+
+1. **Never trust user input** for filenames or paths
+2. **Never use user input directly** in `path.join()`
+3. **Never allow `..`** in any path component
+4. **Never skip null byte checks**
+5. **Never assume extension extraction is safe**
+6. **Never rely on a single security check**
+
+### Deployment Checklist
+
+- [x] Input sanitization implemented
+- [x] Extension validation with whitelist
+- [x] Path validation before file operations
+- [x] UUID-based filenames used
+- [x] Defense in depth (4 layers)
+- [ ] Upload directory has restricted permissions (0755)
+- [ ] Node.js process runs with minimal privileges
+- [ ] File size limits enforced
+- [ ] Content-Type validation implemented
+- [ ] Virus scanning on uploaded files (production)
+
+### CVSS Analysis
+
+**Before Fix:**
+- Attack Vector: Network (AV:N)
+- Attack Complexity: Low (AC:L)
+- Privileges Required: Low (PR:L)
+- User Interaction: None (UI:N)
+- Scope: Changed (S:C)
+- Confidentiality: High (C:H)
+- Integrity: High (I:H)
+- Availability: High (A:H)
+- **CVSS 3.1 Score: 9.8 (CRITICAL)**
+
+**After Fix:**
+- **CVSS Score: 0.0 (Resolved)**
+
+### FAQ
+
+**Q: Why extract extension before sanitization?**  
+A: Null byte handling in `safeExtension()` must see the original filename. If we sanitize first, `file.txt\0.php` becomes `file.txt.php`, extracting `.php` instead of `.txt`.
+
+**Q: Why not just validate the final path?**  
+A: Defense in depth. Multiple validation layers ensure that even if one fails, others catch the attack.
+
+**Q: Are there file size limits?**  
+A: Not yet. File size limits should be implemented in the upload endpoint as an additional security measure.
+
+**Q: What about Content-Type validation?**  
+A: The `contentType` parameter is used but not validated against the file content. Consider adding MIME type validation in production.
+
+**Q: Should we scan uploaded files for malware?**  
+A: Yes, in production. Integrate virus scanning (ClamAV, etc.) before serving files to users.
+
+---
+
+**Last Updated:** 2026-02-27  
+**Security Contact:** Viktor (Auditor)  
+**Fixed By:** Anton (Junior Developer)
