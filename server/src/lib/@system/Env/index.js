@@ -285,6 +285,20 @@ function validate() {
     }
   }
 
+  // In production, ensure JWT keys are real PEM keys — not placeholders or empty strings
+  if (isProd) {
+    for (const { key, marker } of [
+      { key: 'JWT_PRIVATE_KEY', marker: 'PRIVATE KEY' },
+      { key: 'JWT_PUBLIC_KEY', marker: 'PUBLIC KEY' },
+    ]) {
+      const raw = process.env[key] ?? ''
+      const pem = raw.replace(/\\n/g, '\n')
+      if (!pem.includes('BEGIN') || !pem.includes(marker)) {
+        errors.push(`  ✗  ${key} — must be a real PEM key in production, not a placeholder or empty value`)
+      }
+    }
+  }
+
   return { errors, warnings }
 }
 
