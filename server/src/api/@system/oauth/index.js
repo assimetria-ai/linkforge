@@ -113,7 +113,7 @@ async function handleOAuthSuccess({ res, provider, providerId, email, name }) {
   }
 
   const token = await signTokenAsync({ userId: user.id })
-  res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: SESSION_TTL * 1000 })
+  res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: SESSION_TTL * 1000 })
   
   // SECURITY: Use safe redirect helper
   res.redirect(safeRedirectUrl('/app'))

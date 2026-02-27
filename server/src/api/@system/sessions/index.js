@@ -71,7 +71,8 @@ async function isBlacklisted(token) {
 function setAccessCookie(res, token) {
   res.cookie('access_token', token, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
     maxAge: ACCESS_TOKEN_TTL_MS,
     path: '/',
   })
@@ -80,7 +81,8 @@ function setAccessCookie(res, token) {
 function setRefreshCookie(res, token) {
   res.cookie('refresh_token', token, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
     maxAge: REFRESH_TOKEN_TTL_MS,
     path: '/api/sessions', // scoped: only sent to token-rotation endpoint
   })
