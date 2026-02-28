@@ -65,14 +65,27 @@ const SCHEMA = [
   },
 
   // ── Auth (RS256 asymmetric key pair) ─────────────────────────────────────
+  // Provide EITHER the file path (preferred) OR the inline PEM — not both.
+  // File-based is recommended: the raw key stays out of .env files.
+  // In production use Railway secrets / Doppler / 1Password to inject the key.
+  {
+    key: 'JWT_PRIVATE_KEY_FILE',
+    required: false,
+    description: 'Path to RSA private key PEM file (preferred) — set by npm run generate-keys',
+  },
   {
     key: 'JWT_PRIVATE_KEY',
-    required: true,
-    description: 'RSA private key PEM (with \\n line endings) — used to sign JWT tokens',
+    required: false,
+    description: 'RSA private key PEM inline (with \\n line endings) — for Railway/Doppler injection',
+  },
+  {
+    key: 'JWT_PUBLIC_KEY_FILE',
+    required: false,
+    description: 'Path to RSA public key PEM file (optional alternative to JWT_PUBLIC_KEY)',
   },
   {
     key: 'JWT_PUBLIC_KEY',
-    required: true,
+    required: false,
     description: 'RSA public key PEM (with \\n line endings) — used to verify JWT tokens',
   },
 
@@ -285,17 +298,48 @@ function validate() {
     }
   }
 
-  // In production, ensure JWT keys are real PEM keys — not placeholders or empty strings
+  // Ensure at least one source is configured for each JWT key
+  const hasPrivateKey = !!(process.env.JWT_PRIVATE_KEY_FILE || process.env.JWT_PRIVATE_KEY)
+  const hasPublicKey = !!(process.env.JWT_PUBLIC_KEY_FILE || process.env.JWT_PUBLIC_KEY)
+
+  if (!hasPrivateKey) {
+    errors.push(
+      '  ✗  JWT_PRIVATE_KEY_FILE (or JWT_PRIVATE_KEY) — required but not set. ' +
+      'Run: npm run generate-keys'
+    )
+  }
+  if (!hasPublicKey) {
+    errors.push(
+      '  ✗  JWT_PUBLIC_KEY_FILE (or JWT_PUBLIC_KEY) — required but not set. ' +
+      'Run: npm run generate-keys'
+    )
+  }
+
+  // In production, verify the configured keys look like real PEM material
   if (isProd) {
-    for (const { key, marker } of [
-      { key: 'JWT_PRIVATE_KEY', marker: 'PRIVATE KEY' },
-      { key: 'JWT_PUBLIC_KEY', marker: 'PUBLIC KEY' },
-    ]) {
-      const raw = process.env[key] ?? ''
-      const pem = raw.replace(/\\n/g, '\n')
-      if (!pem.includes('BEGIN') || !pem.includes(marker)) {
-        errors.push(`  ✗  ${key} — must be a real PEM key in production, not a placeholder or empty value`)
+    const fs = require('fs')
+
+    function readOrInline(fileVar, inlineVar, label) {
+      const filePath = process.env[fileVar]
+      if (filePath) {
+        try {
+          return fs.readFileSync(filePath, 'utf8')
+        } catch (err) {
+          errors.push(`  ✗  ${fileVar}="${filePath}" — cannot read file: ${err.message}`)
+          return ''
+        }
       }
+      return (process.env[inlineVar] ?? '').replace(/\\n/g, '\n')
+    }
+
+    const privateKeyPem = readOrInline('JWT_PRIVATE_KEY_FILE', 'JWT_PRIVATE_KEY')
+    const publicKeyPem = readOrInline('JWT_PUBLIC_KEY_FILE', 'JWT_PUBLIC_KEY')
+
+    if (hasPrivateKey && (!privateKeyPem.includes('BEGIN') || !privateKeyPem.includes('PRIVATE KEY'))) {
+      errors.push('  ✗  JWT_PRIVATE_KEY — must be a real PEM key in production, not a placeholder')
+    }
+    if (hasPublicKey && (!publicKeyPem.includes('BEGIN') || !publicKeyPem.includes('PUBLIC KEY'))) {
+      errors.push('  ✗  JWT_PUBLIC_KEY — must be a real PEM key in production, not a placeholder')
     }
   }
 

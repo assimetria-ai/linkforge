@@ -1784,3 +1784,58 @@ A: Admins use `GET /collaborators?all=true` to bypass the invited_by filter.
 **Last Updated:** 2026-02-27  
 **Security Contact:** Viktor (Auditor)  
 **Fixed By:** Anton (Junior Developer)
+
+---
+
+## RSA Private Key Management (Task #1317 - Viktor Audit 2026-02-28)
+
+### Vulnerability Description
+
+**Severity:** LOW (P3)
+**Category:** Secret Management
+**Affected File:** `server/.env` (before fix)
+**Discovered:** 2026-02-28 by Viktor
+
+#### The Problem
+
+The `generate-keys.js` script wrote the full 2048-bit RSA private key (`JWT_PRIVATE_KEY`) directly into `server/.env` as a plaintext string. While `server/.env` is gitignored, embedding raw key material in an env file is a security anti-pattern: any local file access, misconfigured backup, or accidental clipboard copy exposes the key.
+
+### The Fix
+
+**Approach: Separate file-based key storage + secrets manager guidance**
+
+1. `generate-keys.js` now writes the RSA private key to `server/.keys/jwt_private.pem` with `chmod 600` permissions. Only the file _path_ is stored in `server/.env` as `JWT_PRIVATE_KEY_FILE=.keys/jwt_private.pem`.
+2. `server/.keys/` is added to `.gitignore` — the directory is never committed.
+3. `jwt.js` supports two modes at runtime:
+   - `JWT_PRIVATE_KEY_FILE` — reads from a PEM file (preferred for local dev)
+   - `JWT_PRIVATE_KEY` — accepts inline PEM (for Railway / Doppler / 1Password injection)
+
+### Production Recommendation
+
+Use Railway secrets, Doppler, or 1Password CLI to inject `JWT_PRIVATE_KEY` as an env var at deploy time. The raw key material never touches the build filesystem.
+
+| Environment | Approach |
+|-------------|----------|
+| Local dev | `npm run generate-keys` writes key to `server/.keys/jwt_private.pem` (chmod 600) |
+| Railway | Set `JWT_PRIVATE_KEY` as a Railway Secret Variable |
+| Doppler | Set `JWT_PRIVATE_KEY` in Doppler project secrets |
+| Docker secrets | Mount at `/run/secrets/jwt_private_key`, set `JWT_PRIVATE_KEY_FILE=/run/secrets/jwt_private_key` |
+
+### Files Changed
+
+- `scripts/@system/dev/generate-keys.js` — writes private key to `.keys/` file, not `.env`
+- `server/src/lib/@system/Helpers/jwt.js` — loads key from file or inline env var
+- `server/src/lib/@system/Env/index.js` — validates that at least one source is configured
+- `server/.env.example` — documents both approaches with usage guidance
+- `.gitignore` — adds `server/.keys/` exclusion
+
+### CVSS Assessment
+
+**Before Fix:** CVSS 3.1 ~4.4 (MEDIUM-LOW) — local file read exposes key material enabling token forgery
+**After Fix:** CVSS Score: 0.0 (Resolved)
+
+---
+
+**Last Updated:** 2026-02-28
+**Security Contact:** Viktor (Auditor)
+**Fixed By:** Felix Junior Developer (Task #1317)

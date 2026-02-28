@@ -2,63 +2,92 @@
  * generate-keys.js
  *
  * Generates an asymmetric RSA keypair (2048-bit) for RS256 JWT signing and
- * symmetric AES encryption keys, then writes them to server/.env.
+ * symmetric AES encryption keys.
  *
- * Ported from the reference-template generate-keys script and adapted for the
- * product-template variable naming convention (JWT_PRIVATE_KEY / JWT_PUBLIC_KEY).
+ * Security model:
+ *   - The RSA PRIVATE key is written to server/.keys/jwt_private.pem (chmod 600).
+ *     Only the file PATH is stored in server/.env as JWT_PRIVATE_KEY_FILE.
+ *     This keeps the raw key material out of .env files.
+ *   - The RSA PUBLIC key (not sensitive) is written inline to server/.env.
+ *   - The .keys/ directory is gitignored; it must never be committed.
  *
- * Keys are stored with literal \n sequences so that the server-side parsePemKey
- * helper can restore them to proper multi-line PEM format at runtime.
+ * In production use Railway secrets, Doppler, or 1Password to inject
+ * JWT_PRIVATE_KEY (inline PEM) or mount the private key as a file secret.
+ * The server supports both approaches — see server/src/lib/@system/Helpers/jwt.js.
  *
  * Idempotent: skips any key that already has a value.
  *
  * Usage (from project root):
- *   npm install          # installs node-forge
  *   npm run generate-keys
  */
 
 const fs = require('fs');
+const path = require('path');
 const forge = require('node-forge');
 
-try {
-  const envFilePath = './server/.env';
-  let envFile = fs.readFileSync(envFilePath, 'utf8');
+const KEYS_DIR = path.resolve(__dirname, '../../../server/.keys');
+const PRIVATE_KEY_FILE = path.join(KEYS_DIR, 'jwt_private.pem');
+const ENV_FILE_PATH = path.resolve(__dirname, '../../../server/.env');
 
-  // Check if keys already exist AND have real values (not the placeholder "<base64>" from .env.example)
-  const privateKeyExists = /JWT_PRIVATE_KEY=(?!.*<base64>).+BEGIN.*PRIVATE KEY/.test(envFile);
-  const publicKeyExists = /JWT_PUBLIC_KEY=(?!.*<base64>).+BEGIN PUBLIC KEY/.test(envFile);
-  const encryptKeyExists = /ENCRYPT_KEY=(?!.*<[^>]+>)[^=\s]+/.test(envFile);
-  const encryptIvExists = /ENCRYPT_IV=(?!.*<[^>]+>)[^=\s]+/.test(envFile);
+try {
+  let envFile = fs.readFileSync(ENV_FILE_PATH, 'utf8');
+
+  // Check if keys already exist and are real (not placeholder values)
+  const privateKeyFileExists = /JWT_PRIVATE_KEY_FILE=(?!.*GENERATE_WITH)[^\s]+/.test(envFile)
+    && fs.existsSync(PRIVATE_KEY_FILE)
+    && fs.readFileSync(PRIVATE_KEY_FILE, 'utf8').includes('BEGIN');
+
+  const publicKeyExists = /JWT_PUBLIC_KEY=(?!.*GENERATE_WITH)(?!.*<base64>).+BEGIN PUBLIC KEY/.test(envFile);
+  const encryptKeyExists = /ENCRYPT_KEY=(?!.*GENERATE_WITH)(?!.*<[^>]+>)[^=\s]+/.test(envFile);
+  const encryptIvExists = /ENCRYPT_IV=(?!.*GENERATE_WITH)(?!.*<[^>]+>)[^=\s]+/.test(envFile);
 
   let newEnvFile = envFile;
   let keysGenerated = false;
 
   // ── RSA keypair ──────────────────────────────────────────────────────────
-  if (!privateKeyExists || !publicKeyExists) {
+  if (!privateKeyFileExists || !publicKeyExists) {
     console.log('Generating RSA keys...');
     const keypair = forge.pki.rsa.generateKeyPair(2048);
 
-    // Convert to PEM; replace real newlines with literal \n so the value fits
-    // on a single line in .env. parsePemKey() on the server reverses this.
-    const publicKeyPem = forge.pki.publicKeyToPem(keypair.publicKey).replace(/\n/g, '\\n');
-    const privateKeyPem = forge.pki.privateKeyToPem(keypair.privateKey).replace(/\n/g, '\\n');
+    // Convert to PEM strings
+    const publicKeyPem = forge.pki.publicKeyToPem(keypair.publicKey);
+    const privateKeyPem = forge.pki.privateKeyToPem(keypair.privateKey);
 
-    const publicKeyLineExists = /JWT_PUBLIC_KEY=/m.test(newEnvFile);
-    const privateKeyLineExists = /JWT_PRIVATE_KEY=/m.test(newEnvFile);
+    // Write private key to a separate file with restricted permissions
+    // This keeps the raw key material out of .env
+    if (!privateKeyFileExists) {
+      if (!fs.existsSync(KEYS_DIR)) {
+        fs.mkdirSync(KEYS_DIR, { recursive: true });
+        // Restrict directory to owner-only access
+        fs.chmodSync(KEYS_DIR, 0o700);
+      }
+      fs.writeFileSync(PRIVATE_KEY_FILE, privateKeyPem, { mode: 0o600 });
+      console.log(`RSA private key written to: server/.keys/jwt_private.pem (chmod 600)`);
 
-    if (!publicKeyExists) {
-      if (publicKeyLineExists) {
-        newEnvFile = newEnvFile.replace(/JWT_PUBLIC_KEY=.*$/m, `JWT_PUBLIC_KEY=${publicKeyPem}`);
+      // Store the relative file path in .env, not the key material
+      const relPath = path.relative(path.dirname(ENV_FILE_PATH), PRIVATE_KEY_FILE);
+      const privateKeyFileLineExists = /JWT_PRIVATE_KEY_FILE=/m.test(newEnvFile);
+      const privateKeyInlineLineExists = /JWT_PRIVATE_KEY=/m.test(newEnvFile);
+
+      if (privateKeyFileLineExists) {
+        newEnvFile = newEnvFile.replace(/JWT_PRIVATE_KEY_FILE=.*$/m, `JWT_PRIVATE_KEY_FILE=${relPath}`);
+      } else if (privateKeyInlineLineExists) {
+        // Replace the inline var with the file-based var
+        newEnvFile = newEnvFile.replace(/JWT_PRIVATE_KEY=.*$/m, `JWT_PRIVATE_KEY_FILE=${relPath}`);
       } else {
-        newEnvFile += `\nJWT_PUBLIC_KEY=${publicKeyPem}`;
+        newEnvFile += `\nJWT_PRIVATE_KEY_FILE=${relPath}`;
       }
     }
 
-    if (!privateKeyExists) {
-      if (privateKeyLineExists) {
-        newEnvFile = newEnvFile.replace(/JWT_PRIVATE_KEY=.*$/m, `JWT_PRIVATE_KEY=${privateKeyPem}`);
+    // Public key is not sensitive — store inline in .env as before
+    if (!publicKeyExists) {
+      // Flatten to single-line with literal \n for .env compatibility
+      const publicKeyPemFlat = publicKeyPem.replace(/\n/g, '\\n');
+      const publicKeyLineExists = /JWT_PUBLIC_KEY=/m.test(newEnvFile);
+      if (publicKeyLineExists) {
+        newEnvFile = newEnvFile.replace(/JWT_PUBLIC_KEY=.*$/m, `JWT_PUBLIC_KEY=${publicKeyPemFlat}`);
       } else {
-        newEnvFile += `\nJWT_PRIVATE_KEY=${privateKeyPem}`;
+        newEnvFile += `\nJWT_PUBLIC_KEY=${publicKeyPemFlat}`;
       }
     }
 
@@ -102,10 +131,14 @@ try {
   }
 
   if (keysGenerated) {
-    fs.writeFileSync(envFilePath, newEnvFile);
-    console.log('\n✓ Keys written to server/.env');
+    fs.writeFileSync(ENV_FILE_PATH, newEnvFile);
+    console.log('\nKeys written:');
+    console.log('  server/.env              — JWT_PRIVATE_KEY_FILE path + public key + encryption keys');
+    console.log('  server/.keys/jwt_private.pem — RSA private key (chmod 600, gitignored)');
+    console.log('\nNOTE: server/.keys/ is gitignored. Back up jwt_private.pem securely.');
+    console.log('      In production, use Railway secrets / Doppler / 1Password instead.');
   } else {
-    console.log('\n✓ All keys already exist. No changes made.');
+    console.log('\nAll keys already exist. No changes made.');
   }
 } catch (error) {
   console.error('Error generating keys:', error.message);
