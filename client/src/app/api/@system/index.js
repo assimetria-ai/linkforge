@@ -5,11 +5,7 @@ import { apiRequest } from './utils'
 
 // ─── Auth / User ────────────────────────────────────────────────────────────
 
-<<<<<<< HEAD:client/src/app/api/@system/index.js
 export const register = (data) =>
-=======
-export const register = (data: { name: string; email: string; password: string }) =>
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/api/@system/index.ts
   apiRequest.post('/users', data)
 
 export const login = (data) =>

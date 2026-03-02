@@ -244,26 +244,8 @@ That's all it takes. If you have questions, check out our [Help Center](/help) o
 
 // ── API shape (mirrors DB) ────────────────────────────────────────────────────
 
-<<<<<<< HEAD:client/src/app/pages/static/@system/BlogPage.jsx
 
 function apiPostToBlogPost(p){
-=======
-interface ApiPost {
-  id: number
-  slug: string
-  title: string
-  excerpt: string | null
-  content: string
-  category: string
-  author: string
-  tags: string[] | null
-  reading_time: number
-  published_at: string | null
-  created_at: string
-}
-
-function apiPostToBlogPost(p: ApiPost): BlogPost {
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/pages/static/@system/BlogPage.tsx
   return {
     id: String(p.id),
     slug: p.slug,
@@ -274,12 +256,7 @@ function apiPostToBlogPost(p: ApiPost): BlogPost {
     author: p.author,
     publishedAt: p.published_at ?? p.created_at,
     readingTime: p.reading_time,
-<<<<<<< HEAD:client/src/app/pages/static/@system/BlogPage.jsx
     tags: p.tags ?? [] }
-=======
-    tags: p.tags ?? [],
-  }
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/pages/static/@system/BlogPage.tsx
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -397,21 +374,13 @@ function FeaturedPost({ post }) {
 export function BlogPage() {
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
-<<<<<<< HEAD:client/src/app/pages/static/@system/BlogPage.jsx
   const [apiPosts, setApiPosts] = useState(null)
-=======
-  const [apiPosts, setApiPosts] = useState<BlogPost[] | null>(null)
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/pages/static/@system/BlogPage.tsx
 
   // Load posts from API; fall back to static seed data if API unavailable
   useEffect(() => {
     fetch('/api/blog')
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-<<<<<<< HEAD:client/src/app/pages/static/@system/BlogPage.jsx
       .then((data) => {
-=======
-      .then((data: { posts: ApiPost[] }) => {
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/pages/static/@system/BlogPage.tsx
         if (data.posts && data.posts.length > 0) {
           setApiPosts(data.posts.map(apiPostToBlogPost))
         }

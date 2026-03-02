@@ -174,7 +174,6 @@ function RelatedPosts({ current }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-<<<<<<< HEAD:client/src/app/pages/static/@system/BlogPostPage.jsx
 
 function apiPostToBlogPost(p){
   return {
@@ -195,42 +194,6 @@ export function BlogPostPage() {
 
   const staticPost = useMemo(() => BLOG_POSTS.find((p) => p.slug === slug), [slug])
   const [apiPost, setApiPost] = useState(null)
-=======
-interface ApiPostDetail {
-  id: number
-  slug: string
-  title: string
-  excerpt: string | null
-  content: string
-  category: string
-  author: string
-  tags: string[] | null
-  reading_time: number
-  published_at: string | null
-  created_at: string
-}
-
-function apiPostToBlogPost(p: ApiPostDetail): BlogPost {
-  return {
-    id: String(p.id),
-    slug: p.slug,
-    title: p.title,
-    excerpt: p.excerpt ?? '',
-    content: p.content,
-    category: p.category,
-    author: p.author,
-    publishedAt: p.published_at ?? p.created_at,
-    readingTime: p.reading_time,
-    tags: p.tags ?? [],
-  }
-}
-
-export function BlogPostPage() {
-  const { slug } = useParams<{ slug: string }>()
-
-  const staticPost = useMemo(() => BLOG_POSTS.find((p) => p.slug === slug), [slug])
-  const [apiPost, setApiPost] = useState<BlogPost | null | 'not-found'>(null)
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/pages/static/@system/BlogPostPage.tsx
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -241,11 +204,7 @@ export function BlogPostPage() {
         if (!r.ok) throw new Error()
         return r.json()
       })
-<<<<<<< HEAD:client/src/app/pages/static/@system/BlogPostPage.jsx
       .then((data) => {
-=======
-      .then((data: { post: ApiPostDetail } | null) => {
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/pages/static/@system/BlogPostPage.tsx
         if (data) setApiPost(apiPostToBlogPost(data.post))
       })
       .catch(() => {
@@ -258,11 +217,7 @@ export function BlogPostPage() {
   // - If API returned 'not-found' and no static match → 404
   // - If API returned a post → use it
   // - If API unavailable (null after load) → fall back to static
-<<<<<<< HEAD:client/src/app/pages/static/@system/BlogPostPage.jsx
   const post =
-=======
-  const post: BlogPost | undefined =
->>>>>>> 7158ae05375246b3ac391642ec0953872bf71416:client/src/app/pages/static/@system/BlogPostPage.tsx
     apiPost === 'not-found'
       ? undefined
       : apiPost !== null
