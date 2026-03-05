@@ -10,6 +10,7 @@ const ApiKeyRepo = require('./ApiKeyRepo')
 const AuditLogRepo = require('./AuditLogRepo')
 const BrandRepo = require('./BrandRepo')
 const CollaboratorRepo = require('./CollaboratorRepo')
+const BlogPostRepo = require('./BlogPostRepo')
 const UserRepo = require('./UserRepo')
 
-module.exports = { ApiKeyRepo, AuditLogRepo, BrandRepo, CollaboratorRepo, UserRepo }
+module.exports = { ApiKeyRepo, AuditLogRepo, BlogPostRepo, BrandRepo, CollaboratorRepo, UserRepo }
