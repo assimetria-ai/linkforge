@@ -13,9 +13,14 @@ const customRoutes = require('./routes/@custom')
 
 const app = express()
 
-// /healthz is registered before all middleware (including CORS) so that infrastructure
-// health probes with no Origin header reach it without triggering CORS rejection.
-// This is the only path permitted to bypass CORS in production.
+// Health check endpoints registered before all middleware (including CORS) so that
+// infrastructure health probes with no Origin header reach them without triggering
+// CORS rejection. These are the only paths permitted to bypass CORS in production.
+//
+// Both /health and /healthz are provided for compatibility:
+// - /health: Standard REST convention
+// - /healthz: Kubernetes/GKE convention
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }))
 app.get('/healthz', (_req, res) => res.status(200).json({ status: 'ok' }))
 
 app.use(securityHeaders)
