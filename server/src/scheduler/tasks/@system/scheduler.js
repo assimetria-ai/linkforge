@@ -133,18 +133,6 @@ class Scheduler {
     this._enqueueTask(task)
   }
 
-  /**
-   * Load and register tasks from the @custom init module.
-   */
-  async init() {
-    try {
-      const initCustom = require('../@custom/init')
-      initCustom(this)
-      logger.info('[scheduler] custom tasks initialised')
-    } catch (err) {
-      logger.warn({ err }, '[scheduler] no custom init found or init failed — skipping')
-    }
-  }
 }
 
 module.exports = new Scheduler()

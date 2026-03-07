@@ -52,7 +52,13 @@ async function start() {
   }
 
   // ── Scheduler ──────────────────────────────────────────────────────────
-  await scheduler.init()
+  try {
+    const initCustomTasks = require('./scheduler/tasks/@custom/init')
+    initCustomTasks(scheduler)
+    logger.info('scheduler: custom tasks initialised')
+  } catch (err) {
+    logger.warn({ err }, 'scheduler: no custom init found or init failed — skipping')
+  }
 
   const server = app.listen(PORT, BIND_HOST, () => {
     logger.info({ port: PORT, host: BIND_HOST, env: process.env.NODE_ENV ?? 'development' }, 'server started')
