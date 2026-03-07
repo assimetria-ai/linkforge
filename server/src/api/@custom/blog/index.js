@@ -12,7 +12,7 @@ const {
   BlogPostIdParams,
   BlogPostSlugParams,
   ListBlogPostsQuery,
-} = require('../../../lib/@custom/Validation/schemas/blog')
+} = require('../../../lib/@custom/Validation/schemas/@custom/blog')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -83,8 +83,6 @@ router.get('/blog/:slug', validate({ params: BlogPostSlugParams }), async (req, 
 router.post('/blog', authenticate, requireAdmin, validate({ body: CreateBlogPostBody }), async (req, res, next) => {
   try {
     const { title, excerpt, content, category, author, tags, cover_image, status } = req.body
-
-    }
 
     const baseSlug = slugify(title.trim())
     const existing = await BlogPostRepo.findBySlug(baseSlug)
