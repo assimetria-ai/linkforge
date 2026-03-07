@@ -40,6 +40,17 @@ async function start() {
   await connectPostgres()
   await connectRedis()
 
+  // ── Email logging ──────────────────────────────────────────────────────
+  // Register email tracking callback if EmailLogRepo exists
+  try {
+    const Email = require('./lib/@system/Email')
+    const EmailLogRepo = require('./db/repos/@custom/EmailLogRepo')
+    Email.setEmailSentCallback((data) => EmailLogRepo.create(data))
+    logger.info('email logging enabled')
+  } catch (_) {
+    // EmailLogRepo not available — email logging disabled
+  }
+
   // ── Scheduler ──────────────────────────────────────────────────────────
   await scheduler.init()
 

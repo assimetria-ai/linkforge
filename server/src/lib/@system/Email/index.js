@@ -48,6 +48,7 @@ const templates = require('./templates')
 // ── Transport / adapter state ─────────────────────────────────────────────────
 
 let _state = null  // { provider, smtpTransporter? }
+let _onEmailSent = null  // optional callback: (emailData) => Promise<void>
 
 /**
  * Detect the active provider and initialise adapters once.
@@ -218,22 +219,14 @@ async function send({ to, subject, html, text, template, userId, replyTo, cc, bc
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /**
- * Fire-and-forget: persist an email log record via direct DB write.
+ * Fire-and-forget: persist an email log record via optional callback.
  * Fails silently so email delivery is never blocked by a logging error.
  */
 async function _trackEmail({ to, subject, template, messageId, provider, status = 'sent', error = null, userId }) {
+  if (!_onEmailSent) return  // No tracking callback registered
+  
   try {
-    // Optional: try to log email via custom EmailLogRepo if it exists
-    // @system should not have hard dependencies on @custom
-    let EmailLogRepo
-    try {
-      EmailLogRepo = require('../../../db/repos/@custom/EmailLogRepo')
-    } catch (_requireErr) {
-      // EmailLogRepo doesn't exist or isn't available — skip logging
-      return
-    }
-
-    await EmailLogRepo.create({
+    await _onEmailSent({
       to_address: to,
       subject,
       template: template ?? null,
@@ -243,9 +236,17 @@ async function _trackEmail({ to, subject, template, messageId, provider, status 
       error: error ?? null,
       user_id: userId ?? null,
     })
-  } catch (_dbErr) {
+  } catch (_callbackErr) {
     // Silently ignore — logging must never break email delivery
   }
+}
+
+/**
+ * Register a callback to track sent emails.
+ * @param {Function} callback - (emailData) => Promise<void>
+ */
+function setEmailSentCallback(callback) {
+  _onEmailSent = callback
 }
 
 /**
@@ -364,4 +365,5 @@ module.exports = {
   sendNotificationEmail,
   resetTransport,
   getTransport,
+  setEmailSentCallback,
 }
