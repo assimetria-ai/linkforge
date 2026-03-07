@@ -5,6 +5,7 @@ const express = require('express')
 const router = express.Router()
 const { authenticate, requireAdmin } = require('../../../lib/@system/Helpers/auth')
 const BlogPostRepo = require('../../../db/repos/@custom/BlogPostRepo')
+const logger = require('../../../lib/@system/Logger')
 const { validate } = require('../../../lib/@system/Validation')
 const {
   CreateBlogPostBody,
@@ -12,7 +13,7 @@ const {
   BlogPostIdParams,
   BlogPostSlugParams,
   ListBlogPostsQuery,
-} = require('../../../lib/@system/Validation/schemas/@custom/blog')
+} = require('../../../lib/@custom/Validation/schemas/blog')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
