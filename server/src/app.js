@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser')
 const pinoHttp = require('pino-http')
 
 const logger = require('./lib/@system/Logger')
-const { cors, securityHeaders } = require('./lib/@system/Middleware')
+const { cors, securityHeaders, csrfProtection, generateCsrfToken } = require('./lib/@system/Middleware')
 const { apiLimiter } = require('./lib/@system/RateLimit')
 const systemRoutes = require('./routes/@system')
 const customRoutes = require('./routes/@custom')
@@ -34,6 +34,15 @@ app.use(cookieParser())
 if (process.env.NODE_ENV !== 'test') {
   app.use(pinoHttp({ logger }))
 }
+
+// CSRF token endpoint — clients must call this before making state-changing requests
+app.get('/api/csrf-token', (req, res) => {
+  const csrfToken = generateCsrfToken(req, res)
+  res.json({ csrfToken })
+})
+
+// CSRF protection for all state-changing requests (POST, PUT, PATCH, DELETE)
+app.use(csrfProtection)
 
 // General rate limiting for all API routes (baseline DoS protection)
 app.use('/api', apiLimiter)
