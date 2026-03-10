@@ -1,0 +1,62 @@
+const crypto = require('crypto')
+const { verifyTokenAsync } = require('./jwt')
+const UserRepo = require('../../../db/repos/@system/UserRepo')
+const ApiKeyRepo = require('../../../db/repos/@system/ApiKeyRepo')
+
+/**
+ * Reads the access token from:
+ *   1. `access_token` cookie (new name)
+ *   2. `token` cookie (legacy name, backward-compatible)
+ *   3. Authorization: Bearer <token> header
+ */
+function extractAccessToken(req) {
+  return (
+    req.cookies?.access_token ??
+    req.cookies?.token ??
+    req.headers.authorization?.replace('Bearer ', '')
+  )
+}
+
+function hashKey(raw) {
+  return crypto.createHash('sha256').update(raw).digest('hex')
+}
+
+async function authenticate(req, res, next) {
+  try {
+    const rawToken = extractAccessToken(req)
+    if (!rawToken) return res.status(401).json({ message: 'Unauthorized' })
+
+    // API key path: tokens starting with "sk_"
+    if (rawToken.startsWith('sk_')) {
+      const keyHash = hashKey(rawToken)
+      const apiKey = await ApiKeyRepo.findByHash(keyHash)
+      if (!apiKey) return res.status(401).json({ message: 'Unauthorized' })
+      if (apiKey.expires_at && new Date(apiKey.expires_at) < new Date()) {
+        return res.status(401).json({ message: 'API key expired' })
+      }
+      const user = await UserRepo.findById(apiKey.user_id)
+      if (!user) return res.status(401).json({ message: 'Unauthorized' })
+      // Fire-and-forget last_used update
+      ApiKeyRepo.touchLastUsed(apiKey.id).catch(() => {})
+      req.user = { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: !!user.email_verified_at, onboardingCompleted: !!user.onboarding_completed }
+      req.apiKey = { id: apiKey.id, name: apiKey.name }
+      return next()
+    }
+
+    // Session JWT path
+    const payload = await verifyTokenAsync(rawToken)
+    const user = await UserRepo.findById(payload.userId)
+    if (!user) return res.status(401).json({ message: 'Unauthorized' })
+    req.user = { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: !!user.email_verified_at, onboardingCompleted: !!user.onboarding_completed }
+    next()
+  } catch (err) {
+    res.status(401).json({ message: 'Unauthorized' })
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') return res.status(403).json({ message: 'Forbidden' })
+  next()
+}
+
+module.exports = { authenticate, requireAdmin, extractAccessToken }
