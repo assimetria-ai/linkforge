@@ -12,7 +12,13 @@
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/app/*": ["src/app/*"],
+      "@/components/*": ["src/app/components/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "build"]

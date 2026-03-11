@@ -221,14 +221,14 @@ export function PageEditorPage() {
       {/* Alerts */}
       {error && (
         <div className="mx-4 sm:mx-6 mt-4">
-          <Alert variant="destructive" onClose={() => setError(null)}>
+          <Alert variant="destructive" dismissible>
             {error}
           </Alert>
         </div>
       )}
       {success && (
         <div className="mx-4 sm:mx-6 mt-4">
-          <Alert variant="success" onClose={() => setSuccess(null)}>
+          <Alert variant="success" dismissible>
             {success}
           </Alert>
         </div>
