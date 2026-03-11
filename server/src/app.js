@@ -50,6 +50,10 @@ app.use('/api', attachDatabase)
 app.use('/api', systemRoutes)
 app.use('/api', customRoutes)
 
+// Link shortening redirects (must be before SPA fallback)
+const { linkRedirect } = require('./lib/@custom/redirects')
+app.use(linkRedirect)
+
 // Serve React SPA in production
 const publicDir = path.join(__dirname, '..', 'public')
 if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
