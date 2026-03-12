@@ -75,7 +75,7 @@ export const search = <T = SearchHit>(params: SearchParams) => {
   if (params.offset !== undefined) qs.set('offset', String(params.offset))
   if (params.fields)  qs.set('fields', params.fields)
 
-  return apiRequest.get<SearchResult<T>>(`/search?${qs.toString()}`)
+  return apiRequest.get(`/search?${qs.toString()}`)
 }
 
 // ─── Indexing (admin) ─────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ export const deleteIndex = (indexName: string) =>
 // ─── Health (admin) ───────────────────────────────────────────────────────────
 
 export const getSearchHealth = () =>
-  apiRequest.get<SearchHealthInfo>('/search/health')
+  apiRequest.get('/search/health')
 
 export const getSearchHealthAll = () =>
-  apiRequest.get<{ ok: boolean; adapters: Record<string, SearchHealthInfo> }>('/search/health/all')
+  apiRequest.get('/search/health/all')

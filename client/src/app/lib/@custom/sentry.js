@@ -44,7 +44,7 @@ async function ingestError(err, extra) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(DSN ? { 'x-error-dsn': DSN }) },
+        ...(DSN ? { 'x-error-dsn': DSN } : {}) },
       body: JSON.stringify({
         fingerprint: fingerprint(err),
         title: `${err.name}: ${err.message}`,
@@ -78,7 +78,7 @@ export const errorTracker = {
   },
 
   /** Manually capture a message */
-  captureMessage(message, level: 'info' | 'warning' | 'error' = 'info') {
+  captureMessage(message, level = 'info') {
     const err = new Error(message)
     err.name = 'CapturedMessage'
     ingestError(err, { level })
