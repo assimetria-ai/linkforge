@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/@system/ui/button';
-import { Card } from '@/components/@system/Card/Card';
-import { Input } from '@/components/@system/ui/input';
-import { Label } from '@/components/@system/ui/label';
-import { Alert } from '@/components/@system/Alert/Alert';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/@system/Tabs/Tabs';
+import { Button } from '../../../components/@system/ui/button';
+import { Card } from '../../../components/@system/Card/Card';
+import { Input } from '../../../components/@system/ui/input';
+import { Label } from '../../../components/@system/ui/label';
+import { Alert } from '../../../components/@system/Alert/Alert';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/@system/Tabs/Tabs';
 
 interface Block {
   id: string;
