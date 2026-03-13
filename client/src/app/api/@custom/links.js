@@ -18,6 +18,17 @@ export const updateLink = (id, data) =>
 export const deleteLink = (id) =>
   api.delete(`/links/${id}`)
 
+// ─── Expiration ──────────────────────────────────────────────────────────────
+
+export const getExpiredLinks = ({ limit = 50, offset = 0 } = {}) =>
+  api.get(`/links/expired?limit=${limit}&offset=${offset}`)
+
+export const getExpiringLinks = ({ days = 3 } = {}) =>
+  api.get(`/links/expiring?days=${days}`)
+
+export const bulkUpdateExpiration = (link_ids, { expires_at, click_limit }) =>
+  api.post('/links/bulk/expiration', { link_ids, expires_at, click_limit })
+
 // ─── Analytics ───────────────────────────────────────────────────────────────
 
 export const getTopLinks = ({ limit = 10 } = {}) =>
