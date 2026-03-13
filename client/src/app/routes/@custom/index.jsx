@@ -1,78 +1,37 @@
 import { Route } from 'react-router-dom'
-import { ErrorTrackingPage } from '../../pages/app/@custom/ErrorTrackingPage'
-import { CollaboratorsPage } from '../../pages/app/@custom/CollaboratorsPage'
-import { BrandSettingsPage } from '../../pages/app/@custom/BrandSettingsPage'
-import { ChatbasePage } from '../../pages/app/@custom/ChatbasePage'
-import { EmailTrackingPage } from '../../pages/app/@custom/EmailTrackingPage'
-import { EmailPreviewPage } from '../../pages/app/@custom/EmailPreviewPage'
-import { ClipLibraryPage } from '../../pages/app/@custom/ClipLibraryPage'
+import { LinksPage } from '../../pages/app/@custom/LinksPage'
+import { LinkAnalyticsPage } from '../../pages/app/@custom/LinkAnalyticsPage'
+import { UTMBuilderPage } from '../../pages/app/@custom/UTMBuilderPage'
 import { TeamsPage } from '../../pages/app/@custom/TeamsPage'
 import { TeamDetailPage } from '../../pages/app/@custom/TeamDetailPage'
 import { PrivateRoute } from '@/app/components/@system/PrivateRoute/PrivateRoute'
 
-// @custom — add your product-specific routes here.
-// Wrap with <PrivateRoute> for authenticated pages.
+// @custom — Linkforge product-specific routes
 export const customRoutes = [
   <Route
-    key="error-tracking"
-    path="/app/errors"
+    key="links"
+    path="/app/links"
     element={
       <PrivateRoute>
-        <ErrorTrackingPage />
+        <LinksPage />
       </PrivateRoute>
     }
   />,
   <Route
-    key="collaborators"
-    path="/app/collaborators"
+    key="link-analytics"
+    path="/app/links/:id"
     element={
       <PrivateRoute>
-        <CollaboratorsPage />
+        <LinkAnalyticsPage />
       </PrivateRoute>
     }
   />,
   <Route
-    key="brand-settings"
-    path="/app/brand"
+    key="utm-builder"
+    path="/app/utm"
     element={
       <PrivateRoute>
-        <BrandSettingsPage />
-      </PrivateRoute>
-    }
-  />,
-  <Route
-    key="chatbase"
-    path="/app/chatbase"
-    element={
-      <PrivateRoute>
-        <ChatbasePage />
-      </PrivateRoute>
-    }
-  />,
-  <Route
-    key="email-tracking"
-    path="/app/emails"
-    element={
-      <PrivateRoute role="admin">
-        <EmailTrackingPage />
-      </PrivateRoute>
-    }
-  />,
-  <Route
-    key="email-preview"
-    path="/app/emails/preview"
-    element={
-      <PrivateRoute role="admin">
-        <EmailPreviewPage />
-      </PrivateRoute>
-    }
-  />,
-  <Route
-    key="clip-library"
-    path="/app/library"
-    element={
-      <PrivateRoute>
-        <ClipLibraryPage />
+        <UTMBuilderPage />
       </PrivateRoute>
     }
   />,
