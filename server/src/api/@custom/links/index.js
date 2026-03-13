@@ -21,8 +21,8 @@ function isValidSlug(slug) {
 
 function isValidUrl(url) {
   try {
-    new URL(url)
-    return true
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
   } catch {
     return false
   }
