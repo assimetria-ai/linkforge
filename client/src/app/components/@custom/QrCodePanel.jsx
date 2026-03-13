@@ -1,8 +1,9 @@
-// @custom — QR Code generation panel for link detail view
+// @custom — QR Code generation panel for links and bio pages
 import { useState, useEffect, useCallback } from 'react'
-import { QrCode, Download, Palette, RefreshCw } from 'lucide-react'
+import { QrCode, Download, Palette, RefreshCw, Image } from 'lucide-react'
 import { Button } from '../@system/ui/button'
 import { getLinkQrDataUrl } from '../../api/@custom/links'
+import { getPageQrDataUrl } from '../../api/@custom/pages'
 
 const COLOR_PRESETS = [
   { label: 'Classic', fg: '000000', bg: 'ffffff' },
@@ -13,19 +14,33 @@ const COLOR_PRESETS = [
   { label: 'Slate', fg: '334155', bg: 'f8fafc' },
 ]
 
-export function QrCodePanel({ linkId, slug }) {
+/**
+ * QrCodePanel — unified QR code generator for links and bio pages
+ * Props:
+ *   linkId + slug — for link QR codes (original usage)
+ *   pageId + slug — for bio page QR codes
+ *   logoUrl — optional center logo overlay (displayed client-side on the canvas)
+ */
+export function QrCodePanel({ linkId, pageId, slug, logoUrl: initialLogoUrl }) {
   const [qrData, setQrData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fgColor, setFgColor] = useState('000000')
   const [bgColor, setBgColor] = useState('ffffff')
   const [showCustomize, setShowCustomize] = useState(false)
+  const [logoUrl, setLogoUrl] = useState(initialLogoUrl || '')
+  const [logoError, setLogoError] = useState(false)
+
+  const isPage = Boolean(pageId)
+  const entityId = pageId || linkId
 
   const generateQr = useCallback(async () => {
+    if (!entityId) return
     setLoading(true)
     setError('')
     try {
-      const data = await getLinkQrDataUrl(linkId, {
+      const fetcher = isPage ? getPageQrDataUrl : getLinkQrDataUrl
+      const data = await fetcher(entityId, {
         size: 400,
         fg: fgColor,
         bg: bgColor,
@@ -36,27 +51,97 @@ export function QrCodePanel({ linkId, slug }) {
     } finally {
       setLoading(false)
     }
-  }, [linkId, fgColor, bgColor])
+  }, [entityId, isPage, fgColor, bgColor])
 
   useEffect(() => {
     generateQr()
   }, [generateQr])
 
+  // Composite QR + logo on canvas for PNG download
+  const compositeWithLogo = (qrDataUrl, callback) => {
+    if (!logoUrl || logoError) {
+      callback(qrDataUrl)
+      return
+    }
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const qrImg = new window.Image()
+    qrImg.crossOrigin = 'anonymous'
+    qrImg.onload = () => {
+      canvas.width = qrImg.width
+      canvas.height = qrImg.height
+      ctx.drawImage(qrImg, 0, 0)
+      // Draw logo in center (20% of QR size)
+      const logo = new window.Image()
+      logo.crossOrigin = 'anonymous'
+      logo.onload = () => {
+        const logoSize = Math.round(qrImg.width * 0.2)
+        const x = Math.round((qrImg.width - logoSize) / 2)
+        const y = Math.round((qrImg.height - logoSize) / 2)
+        // White background behind logo
+        ctx.fillStyle = `#${bgColor}`
+        const pad = 4
+        ctx.fillRect(x - pad, y - pad, logoSize + pad * 2, logoSize + pad * 2)
+        ctx.drawImage(logo, x, y, logoSize, logoSize)
+        callback(canvas.toDataURL('image/png'))
+      }
+      logo.onerror = () => callback(qrDataUrl) // fallback without logo
+      logo.src = logoUrl
+    }
+    qrImg.src = qrDataUrl
+  }
+
   const handleDownloadPng = () => {
     if (!qrData?.dataUrl) return
-    const a = document.createElement('a')
-    a.href = qrData.dataUrl
-    a.download = `qr-${slug}.png`
-    a.click()
+    const prefix = isPage ? 'qr-page' : 'qr'
+    compositeWithLogo(qrData.dataUrl, (finalUrl) => {
+      const a = document.createElement('a')
+      a.href = finalUrl
+      a.download = `${prefix}-${slug}.png`
+      a.click()
+    })
   }
 
   const handleDownloadSvg = () => {
     if (!qrData?.svg) return
-    const blob = new Blob([qrData.svg], { type: 'image/svg+xml' })
+    const prefix = isPage ? 'qr-page' : 'qr'
+    // For SVG with logo, inject a centered image element
+    let svgContent = qrData.svg
+    if (logoUrl && !logoError) {
+      // Parse SVG to inject logo image
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(svgContent, 'image/svg+xml')
+      const svgEl = doc.querySelector('svg')
+      if (svgEl) {
+        const vb = svgEl.getAttribute('viewBox')?.split(' ').map(Number) || [0, 0, 400, 400]
+        const w = vb[2]
+        const h = vb[3]
+        const logoSize = Math.round(w * 0.2)
+        const x = Math.round((w - logoSize) / 2)
+        const y = Math.round((h - logoSize) / 2)
+        // Background rect behind logo
+        const rect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+        rect.setAttribute('x', x - 2)
+        rect.setAttribute('y', y - 2)
+        rect.setAttribute('width', logoSize + 4)
+        rect.setAttribute('height', logoSize + 4)
+        rect.setAttribute('fill', `#${bgColor}`)
+        svgEl.appendChild(rect)
+        const img = doc.createElementNS('http://www.w3.org/2000/svg', 'image')
+        img.setAttribute('href', logoUrl)
+        img.setAttribute('x', x)
+        img.setAttribute('y', y)
+        img.setAttribute('width', logoSize)
+        img.setAttribute('height', logoSize)
+        svgEl.appendChild(img)
+        svgContent = new XMLSerializer().serializeToString(doc)
+      }
+    }
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `qr-${slug}.svg`
+    a.download = `${prefix}-${slug}.svg`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -107,6 +192,35 @@ export function QrCodePanel({ linkId, slug }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Logo Overlay */}
+          <div>
+            <label className="block text-xs font-medium mb-1 flex items-center gap-1">
+              <Image size={12} />
+              Center Logo (optional)
+            </label>
+            <input
+              type="text"
+              value={logoUrl}
+              onChange={(e) => { setLogoUrl(e.target.value); setLogoError(false) }}
+              placeholder="https://example.com/logo.png"
+              className="w-full px-2 py-1 border rounded text-xs bg-background"
+            />
+            {logoUrl && !logoError && (
+              <div className="mt-1 flex items-center gap-2">
+                <img
+                  src={logoUrl}
+                  alt="Logo preview"
+                  className="w-6 h-6 rounded object-contain border"
+                  onError={() => setLogoError(true)}
+                />
+                <span className="text-xs text-muted-foreground">Logo will appear in center</span>
+              </div>
+            )}
+            {logoError && (
+              <p className="text-xs text-red-500 mt-1">Failed to load logo image</p>
+            )}
           </div>
 
           {/* Custom Colors */}
@@ -162,13 +276,36 @@ export function QrCodePanel({ linkId, slug }) {
             <p className="text-xs text-red-500">{error}</p>
           </div>
         ) : qrData?.dataUrl ? (
-          <img
-            src={qrData.dataUrl}
-            alt={`QR code for ${slug}`}
-            className="w-48 h-48 rounded-lg"
-          />
+          <div className="relative w-48 h-48">
+            <img
+              src={qrData.dataUrl}
+              alt={`QR code for ${slug}`}
+              className="w-48 h-48 rounded-lg"
+            />
+            {logoUrl && !logoError && (
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded object-contain border-2"
+                style={{ backgroundColor: `#${bgColor}`, borderColor: `#${bgColor}` }}
+                onError={() => setLogoError(true)}
+              />
+            )}
+          </div>
         ) : null}
       </div>
+
+      {/* URL display */}
+      {qrData?.pageUrl && (
+        <p className="text-xs text-center text-muted-foreground mb-3 truncate px-2">
+          {qrData.pageUrl}
+        </p>
+      )}
+      {qrData?.shortUrl && !qrData?.pageUrl && (
+        <p className="text-xs text-center text-muted-foreground mb-3 truncate px-2">
+          {qrData.shortUrl}
+        </p>
+      )}
 
       {/* Download Buttons */}
       <div className="flex gap-2 justify-center">

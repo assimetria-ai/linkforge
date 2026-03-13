@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Menu, X, Eye, EyeOff } from 'lucide-react';
+import { Menu, X, Eye, EyeOff, QrCode } from 'lucide-react';
+import { QrCodePanel } from '../../client/src/app/components/@custom/QrCodePanel';
 
 /**
  * PageEditor - Simple no-code page builder component
@@ -16,6 +17,7 @@ export default function PageEditor() {
   const [saving, setSaving] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showQrPanel, setShowQrPanel] = useState(false);
 
   useEffect(() => {
     loadPage();
@@ -136,6 +138,15 @@ export default function PageEditor() {
             >
               {showPreview ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
+            {id && (
+              <button
+                onClick={() => setShowQrPanel(!showQrPanel)}
+                className="mobile-toggle"
+                title="QR Code"
+              >
+                <QrCode className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
         <div className="editor-actions flex gap-2 w-full sm:w-auto">
@@ -330,6 +341,16 @@ export default function PageEditor() {
           </div>
         </div>
       </div>
+
+      {/* QR Code Panel for saved pages */}
+      {id && showQrPanel && page && (
+        <div className="max-w-md mx-auto p-4">
+          <QrCodePanel
+            pageId={id}
+            slug={page?.slug || 'page'}
+          />
+        </div>
+      )}
 
       <style jsx>{`
         /* ── Base Styles ──────────────────────────────────────────────── */

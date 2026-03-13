@@ -9,3 +9,4 @@
 
 export { PasswordStrengthIndicator } from './PasswordStrengthIndicator'
 export { HeroSection } from './HeroSection/HeroSection'
+export { QrCodePanel } from './QrCodePanel'
