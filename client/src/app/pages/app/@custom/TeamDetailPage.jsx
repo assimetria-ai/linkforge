@@ -31,6 +31,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/@s
 import { useAuthContext } from '../../../store/@system/auth'
 import { useMobileSidebar } from '../../../hooks/@system/useMobileSidebar'
 import { teamsApi } from '../../../lib/@custom/teams'
+import { workspacesApi } from '../../../lib/@custom/workspaces'
 
 // ─── Nav ─────────────────────────────────────────────────────────────────────
 
@@ -149,14 +150,15 @@ export function TeamDetailPage() {
     setInviteError('')
 
     try {
-      const result = await teamsApi.inviteMember(id, {
+      // Use workspace API for JWT-based invitations
+      const result = await workspacesApi.invite(id, {
         email: inviteEmail.trim(),
         role: inviteRole,
         name: inviteName.trim() || undefined,
       })
 
       setInvitations((prev) => [result.invitation, ...prev])
-      setInviteToken(result.invite_token)
+      setInviteToken(result.invite_link)
       setInviteOpen(false)
       setInviteEmail('')
       setInviteName('')
@@ -338,7 +340,7 @@ export function TeamDetailPage() {
                   </p>
                   <div className="mt-3 flex items-center rounded-md border border-blue-300 bg-white px-3 py-2 font-mono text-xs break-all">
                     <span className="flex-1 select-all">
-                      {`${window.location.origin}/accept-team-invite?token=${inviteToken}`}
+                      {inviteToken}
                     </span>
                   </div>
                 </div>
@@ -529,9 +531,8 @@ export function TeamDetailPage() {
                 onChange={(e) => setInviteRole(e.target.value)}
                 className="w-full appearance-none rounded-md border border-border bg-background px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="admin">Admin — Full team access</option>
-                <option value="member">Member — Standard access</option>
-                <option value="viewer">Viewer — Read only</option>
+                <option value="admin">Admin — Manage links, invite members</option>
+                <option value="member">Member — View and create links</option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>

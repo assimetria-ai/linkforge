@@ -5,6 +5,7 @@ import { UTMBuilderPage } from '../../pages/app/@custom/UTMBuilderPage'
 import { TeamsPage } from '../../pages/app/@custom/TeamsPage'
 import { TeamDetailPage } from '../../pages/app/@custom/TeamDetailPage'
 import { CustomDomainsPage } from '../../pages/app/@custom/CustomDomainsPage'
+import { AcceptInvitePage } from '../../pages/static/@custom/AcceptInvitePage'
 import { PrivateRoute } from '@/app/components/@system/PrivateRoute/PrivateRoute'
 
 // @custom — Linkforge product-specific routes
@@ -62,5 +63,10 @@ export const customRoutes = [
         <CustomDomainsPage />
       </PrivateRoute>
     }
+  />,
+  <Route
+    key="accept-invite"
+    path="/accept-invite"
+    element={<AcceptInvitePage />}
   />,
 ]
