@@ -160,7 +160,7 @@ router.get('/links/:id', authenticate, async (req, res, next) => {
 // ─── POST /api/links ─────────────────────────────────────────────────────────
 router.post('/links', authenticate, async (req, res, next) => {
   try {
-    const { slug, target_url, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body
+    const { slug, target_url, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content, domain_id } = req.body
 
     if (!target_url || !isValidUrl(target_url)) {
       return res.status(400).json({ message: 'Invalid target URL' })
@@ -208,6 +208,7 @@ router.post('/links', authenticate, async (req, res, next) => {
       expires_at: expFields.expires_at || null,
       click_limit: expFields.click_limit || null,
       expiration_alert_days: expFields.expiration_alert_days || null,
+      domain_id: domain_id ? parseInt(domain_id, 10) : null,
     })
 
     res.status(201).json({ link })
@@ -227,7 +228,7 @@ router.patch('/links/:id', authenticate, async (req, res, next) => {
       return res.status(403).json({ message: 'Forbidden' })
     }
 
-    const { target_url, description, is_active, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body
+    const { target_url, description, is_active, utm_source, utm_medium, utm_campaign, utm_term, utm_content, domain_id } = req.body
 
     if (target_url !== undefined && !isValidUrl(target_url)) {
       return res.status(400).json({ message: 'Invalid target URL' })
@@ -249,6 +250,7 @@ router.patch('/links/:id', authenticate, async (req, res, next) => {
       utm_campaign,
       utm_term,
       utm_content,
+      domain_id: domain_id !== undefined ? (domain_id ? parseInt(domain_id, 10) : null) : undefined,
       ...expFields,
     }
 

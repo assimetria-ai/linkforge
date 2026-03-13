@@ -1,12 +1,13 @@
 // @custom — Linkforge: Main Links Management Dashboard with Expiration Support
 import { useState, useEffect, useCallback } from 'react'
-import { Link2, Plus, Copy, ExternalLink, Trash2, BarChart3, Search, ToggleLeft, ToggleRight, Pencil, Check, X, QrCode, Clock, AlertTriangle, Timer } from 'lucide-react'
+import { Link2, Plus, Copy, ExternalLink, Trash2, BarChart3, Search, ToggleLeft, ToggleRight, Pencil, Check, X, QrCode, Clock, AlertTriangle, Timer, Globe } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { DashboardLayout } from '../../../components/@system/Dashboard'
 import { LINKFORGE_NAV_ITEMS } from '../../../config/@custom/navigation'
 import { Button } from '../../../components/@system/ui/button'
 import { useAuthContext } from '../../../store/@system/auth'
 import { getLinks, createLink, updateLink, deleteLink, getExpiringLinks, bulkUpdateExpiration } from '../../../api/@custom/links'
+import { getDomains } from '../../../api/@custom/domains'
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false)
@@ -86,9 +87,23 @@ function CreateLinkModal({ open, onClose, onCreated }) {
   const [description, setDescription] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
   const [clickLimit, setClickLimit] = useState('')
+  const [domainId, setDomainId] = useState('')
+  const [domains, setDomains] = useState([])
   const [showExpiration, setShowExpiration] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Load verified custom domains
+  useEffect(() => {
+    if (open) {
+      getDomains().then(res => {
+        const verified = (res.domains || []).filter(d => d.verified_at)
+        setDomains(verified)
+      }).catch(() => setDomains([]))
+    }
+  }, [open])
+
+  const selectedDomain = domains.find(d => String(d.id) === String(domainId))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -99,6 +114,7 @@ function CreateLinkModal({ open, onClose, onCreated }) {
       if (slug.trim()) data.slug = slug.trim()
       if (expiresAt) data.expires_at = new Date(expiresAt).toISOString()
       if (clickLimit) data.click_limit = parseInt(clickLimit, 10)
+      if (domainId) data.domain_id = parseInt(domainId, 10)
       const result = await createLink(data)
       onCreated(result.link)
       setTargetUrl('')
@@ -106,6 +122,7 @@ function CreateLinkModal({ open, onClose, onCreated }) {
       setDescription('')
       setExpiresAt('')
       setClickLimit('')
+      setDomainId('')
       setShowExpiration(false)
       onClose()
     } catch (err) {
@@ -136,10 +153,28 @@ function CreateLinkModal({ open, onClose, onCreated }) {
               required
             />
           </div>
+
+          {/* Domain Selection */}
+          {domains.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Domain</label>
+              <select
+                value={domainId}
+                onChange={(e) => setDomainId(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Default (lnkf.ge)</option>
+                {domains.map(d => (
+                  <option key={d.id} value={d.id}>{d.domain}{d.is_primary ? ' (primary)' : ''}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-1">Custom Slug (optional)</label>
             <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground">lnkf.ge/</span>
+              <span className="text-sm text-muted-foreground">{selectedDomain ? `${selectedDomain.domain}/` : 'lnkf.ge/'}</span>
               <input
                 type="text"
                 value={slug}
@@ -312,11 +347,12 @@ function ExpiringLinksAlert({ links }) {
   )
 }
 
-function LinkRow({ link, onUpdate, onDelete, baseUrl, onViewQr, selected, onSelect }) {
+function LinkRow({ link, onUpdate, onDelete, baseUrl, onViewQr, selected, onSelect, domainsMap }) {
   const [editing, setEditing] = useState(false)
   const [editUrl, setEditUrl] = useState(link.target_url)
   const [editDesc, setEditDesc] = useState(link.description || '')
-  const shortUrl = `${baseUrl}/${link.slug}`
+  const domainInfo = link.domain_id ? domainsMap?.[link.domain_id] : null
+  const shortUrl = domainInfo ? `https://${domainInfo.domain}/${link.slug}` : `${baseUrl}/${link.slug}`
 
   const handleToggleActive = async () => {
     const data = { is_active: !link.is_active }
@@ -355,6 +391,12 @@ function LinkRow({ link, onUpdate, onDelete, baseUrl, onViewQr, selected, onSele
               <Link2 size={16} className="text-primary shrink-0" />
               <span className="font-mono text-sm font-medium truncate">{shortUrl}</span>
               <CopyButton text={shortUrl} />
+              {domainInfo && (
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                  <Globe size={10} />
+                  {domainInfo.domain}
+                </span>
+              )}
               <ExpirationBadge link={link} />
             </div>
             {editing ? (
@@ -435,18 +477,26 @@ export function LinksPage() {
   const [showBulkExpiration, setShowBulkExpiration] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [expiringLinks, setExpiringLinks] = useState([])
+  const [domainsMap, setDomainsMap] = useState({})
   const baseUrl = window.location.origin
 
   const fetchLinks = useCallback(async () => {
     setLoading(true)
     try {
-      const [linksData, expiringData] = await Promise.all([
+      const [linksData, expiringData, domainsData] = await Promise.all([
         getLinks({ limit: 100 }),
         getExpiringLinks({ days: 3 }).catch(() => ({ links: [] })),
+        getDomains().catch(() => ({ domains: [] })),
       ])
       setLinks(linksData.links || [])
       setTotal(linksData.total || 0)
       setExpiringLinks(expiringData.links || [])
+      // Build domain lookup map by ID
+      const dMap = {}
+      for (const d of (domainsData.domains || [])) {
+        dMap[d.id] = d
+      }
+      setDomainsMap(dMap)
     } catch (err) {
       console.error('Failed to load links:', err)
     } finally {
@@ -606,6 +656,7 @@ export function LinksPage() {
                 onViewQr={(id) => navigate(`/app/links/${id}`)}
                 selected={selectedIds.has(link.id)}
                 onSelect={handleSelect}
+                domainsMap={domainsMap}
               />
             ))}
           </div>

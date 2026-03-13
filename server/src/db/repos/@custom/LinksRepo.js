@@ -5,7 +5,7 @@ const db = require('../../../lib/@system/PostgreSQL')
 const LINK_COLUMNS = `id, slug, target_url, clicks, description, is_active,
   utm_source, utm_medium, utm_campaign, utm_term, utm_content,
   expires_at, click_limit, expired_reason, expiration_alert_sent, expiration_alert_days,
-  created_at, updated_at`
+  domain_id, created_at, updated_at`
 
 const LinksRepo = {
   /**
@@ -20,6 +20,21 @@ const LinksRepo = {
        AND is_active = TRUE 
        AND deleted_at IS NULL`,
       [slug],
+    )
+  },
+
+  /**
+   * Find active link by slug scoped to a custom domain
+   * Used when request comes through a custom domain hostname
+   */
+  async findBySlugAndDomain(slug, domainId) {
+    return db.oneOrNone(
+      `SELECT * FROM links 
+       WHERE slug = $1 
+       AND domain_id = $2
+       AND is_active = TRUE 
+       AND deleted_at IS NULL`,
+      [slug, domainId],
     )
   },
 
@@ -72,12 +87,12 @@ const LinksRepo = {
   /**
    * Create a new short link
    */
-  async create({ slug, target_url, user_id, description = null, utm_source = null, utm_medium = null, utm_campaign = null, utm_term = null, utm_content = null, expires_at = null, click_limit = null, expiration_alert_days = null }) {
+  async create({ slug, target_url, user_id, description = null, utm_source = null, utm_medium = null, utm_campaign = null, utm_term = null, utm_content = null, expires_at = null, click_limit = null, expiration_alert_days = null, domain_id = null }) {
     return db.one(
-      `INSERT INTO links (slug, target_url, user_id, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content, expires_at, click_limit, expiration_alert_days)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `INSERT INTO links (slug, target_url, user_id, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content, expires_at, click_limit, expiration_alert_days, domain_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING ${LINK_COLUMNS}`,
-      [slug, target_url, user_id, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content, expires_at, click_limit, expiration_alert_days],
+      [slug, target_url, user_id, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content, expires_at, click_limit, expiration_alert_days, domain_id],
     )
   },
 
@@ -89,6 +104,7 @@ const LinksRepo = {
       'target_url', 'description', 'is_active',
       'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
       'expires_at', 'click_limit', 'expired_reason', 'expiration_alert_sent', 'expiration_alert_days',
+      'domain_id',
     ]
     const setClauses = []
     const values = []
