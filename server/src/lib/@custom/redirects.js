@@ -1,9 +1,12 @@
 /**
  * Link shortening redirect middleware
  * Handles /:slug redirects for short links
+ * Records click events with browser fingerprint for analytics
  */
 
 const LinksRepo = require('../../db/repos/@custom/LinksRepo')
+const ClickEventRepo = require('../../db/repos/@custom/ClickEventRepo')
+const { generateFingerprint, extractServerSignals } = require('./fingerprint')
 const logger = require('../@system/Logger')
 
 /**
@@ -48,9 +51,14 @@ async function linkRedirect(req, res, next) {
       return next()
     }
 
-    // Increment click count (fire and forget - don't block redirect)
+    // Increment click count (atomic counter on links table)
     LinksRepo.incrementClicks(slug).catch(err => {
       logger.error({ err, slug }, 'Failed to increment link clicks')
+    })
+
+    // Record detailed click event with fingerprint (fire and forget)
+    recordClickEvent(req, link).catch(err => {
+      logger.error({ err, slug }, 'Failed to record click event')
     })
 
     // Redirect to target URL
@@ -60,6 +68,36 @@ async function linkRedirect(req, res, next) {
     // On error, let the SPA handle it
     next()
   }
+}
+
+/**
+ * Record a click event with server-side fingerprint signals
+ */
+async function recordClickEvent(req, link) {
+  const signals = extractServerSignals(req)
+
+  // Generate server-side fingerprint from available headers
+  const fingerprint_hash = generateFingerprint({
+    user_agent: signals.user_agent,
+    accept_language: signals.accept_language,
+  })
+
+  await ClickEventRepo.create({
+    link_id: link.id,
+    slug: link.slug,
+    fingerprint_hash,
+    user_agent: signals.user_agent,
+    accept_language: signals.accept_language,
+    screen_resolution: null, // populated by client-side beacon
+    timezone: null,          // populated by client-side beacon
+    platform: signals.platform,
+    color_depth: null,       // populated by client-side beacon
+    canvas_hash: null,       // populated by client-side beacon
+    ip_address: signals.ip_address,
+    referer: signals.referer,
+    country: null,  // can be populated by GeoIP lookup
+    city: null,     // can be populated by GeoIP lookup
+  })
 }
 
 module.exports = { linkRedirect }

@@ -18,5 +18,6 @@ router.use(require('../../api/@custom/teams'))
 router.use(require('../../api/@custom/links'))
 router.use(require('../../api/@custom/qr'))
 router.use(require('../../api/@custom/domains'))
+router.use(require('../../api/@custom/analytics'))
 
 module.exports = router
