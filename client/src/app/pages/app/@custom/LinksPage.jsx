@@ -1,6 +1,7 @@
 // @custom — Linkforge: Main Links Management Dashboard
 import { useState, useEffect, useCallback } from 'react'
-import { Link2, Plus, Copy, ExternalLink, Trash2, BarChart3, Search, ToggleLeft, ToggleRight, Pencil, Check, X } from 'lucide-react'
+import { Link2, Plus, Copy, ExternalLink, Trash2, BarChart3, Search, ToggleLeft, ToggleRight, Pencil, Check, X, QrCode } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { DashboardLayout } from '../../../components/@system/Dashboard'
 import { LINKFORGE_NAV_ITEMS } from '../../../config/@custom/navigation'
 import { Button } from '../../../components/@system/ui/button'
@@ -106,7 +107,7 @@ function CreateLinkModal({ open, onClose, onCreated }) {
   )
 }
 
-function LinkRow({ link, onUpdate, onDelete, baseUrl }) {
+function LinkRow({ link, onUpdate, onDelete, baseUrl, onViewQr }) {
   const [editing, setEditing] = useState(false)
   const [editUrl, setEditUrl] = useState(link.target_url)
   const [editDesc, setEditDesc] = useState(link.description || '')
@@ -180,6 +181,9 @@ function LinkRow({ link, onUpdate, onDelete, baseUrl }) {
           <button onClick={handleToggleActive} className="p-1.5 rounded hover:bg-muted transition-colors" title={link.is_active ? 'Deactivate' : 'Activate'}>
             {link.is_active ? <ToggleRight size={18} className="text-green-500" /> : <ToggleLeft size={18} className="text-muted-foreground" />}
           </button>
+          <button onClick={() => onViewQr(link.id)} className="p-1.5 rounded hover:bg-muted transition-colors" title="QR Code">
+            <QrCode size={16} />
+          </button>
           <button onClick={() => setEditing(!editing)} className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit">
             <Pencil size={16} />
           </button>
@@ -196,6 +200,7 @@ function LinkRow({ link, onUpdate, onDelete, baseUrl }) {
 }
 
 export function LinksPage() {
+  const navigate = useNavigate()
   const { user } = useAuthContext()
   const [links, setLinks] = useState([])
   const [total, setTotal] = useState(0)
@@ -308,6 +313,7 @@ export function LinksPage() {
                 baseUrl={baseUrl}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
+                onViewQr={(id) => navigate(`/app/links/${id}`)}
               />
             ))}
           </div>

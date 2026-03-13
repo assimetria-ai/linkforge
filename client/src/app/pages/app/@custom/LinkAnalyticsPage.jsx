@@ -6,6 +6,7 @@ import { DashboardLayout } from '../../../components/@system/Dashboard'
 import { LINKFORGE_NAV_ITEMS } from '../../../config/@custom/navigation'
 import { Button } from '../../../components/@system/ui/button'
 import { getLink } from '../../../api/@custom/links'
+import { QrCodePanel } from '../../../components/@custom/QrCodePanel'
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false)
@@ -122,6 +123,9 @@ export function LinkAnalyticsPage() {
           <StatBox icon={TrendingUp} label="Avg Clicks/Day" value={avgClicksPerDay} color="text-green-500" />
           <StatBox icon={Globe} label="Created" value={new Date(link.created_at).toLocaleDateString()} color="text-blue-500" />
         </div>
+
+        {/* QR Code */}
+        <QrCodePanel linkId={link.id} slug={link.slug} />
 
         {/* Placeholder for future analytics */}
         <div className="border rounded-lg p-8 text-center bg-card">
