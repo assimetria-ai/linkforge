@@ -4,6 +4,7 @@ import { LinkAnalyticsPage } from '../../pages/app/@custom/LinkAnalyticsPage'
 import { UTMBuilderPage } from '../../pages/app/@custom/UTMBuilderPage'
 import { TeamsPage } from '../../pages/app/@custom/TeamsPage'
 import { TeamDetailPage } from '../../pages/app/@custom/TeamDetailPage'
+import { CustomDomainsPage } from '../../pages/app/@custom/CustomDomainsPage'
 import { PrivateRoute } from '@/app/components/@system/PrivateRoute/PrivateRoute'
 
 // @custom — Linkforge product-specific routes
@@ -50,6 +51,15 @@ export const customRoutes = [
     element={
       <PrivateRoute>
         <TeamDetailPage />
+      </PrivateRoute>
+    }
+  />,
+  <Route
+    key="custom-domains"
+    path="/app/domains"
+    element={
+      <PrivateRoute>
+        <CustomDomainsPage />
       </PrivateRoute>
     }
   />,

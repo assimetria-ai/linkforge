@@ -1,0 +1,357 @@
+// @custom — Linkforge: Custom Domains Management
+import { useState, useEffect, useCallback } from 'react'
+import { Globe, Plus, Trash2, CheckCircle2, XCircle, Shield, RefreshCw, Star, Copy, Check, AlertCircle } from 'lucide-react'
+import { DashboardLayout } from '../../../components/@system/Dashboard'
+import { LINKFORGE_NAV_ITEMS } from '../../../config/@custom/navigation'
+import { Button } from '../../../components/@system/ui/button'
+import { useAuthContext } from '../../../store/@system/auth'
+import { getDomains, addDomain, deleteDomain, verifyDomain, setPrimaryDomain, regenerateToken } from '../../../api/@custom/domains'
+
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <button onClick={handleCopy} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors" title="Copy">
+      {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  )
+}
+
+function SslBadge({ status }) {
+  const config = {
+    active: { color: 'text-green-600 bg-green-50', icon: Shield, label: 'SSL Active' },
+    provisioning: { color: 'text-yellow-600 bg-yellow-50', icon: RefreshCw, label: 'Provisioning' },
+    pending: { color: 'text-gray-500 bg-gray-50', icon: AlertCircle, label: 'Pending' },
+    failed: { color: 'text-red-600 bg-red-50', icon: XCircle, label: 'Failed' },
+  }
+  const c = config[status] || config.pending
+  const Icon = c.icon
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${c.color}`}>
+      <Icon size={12} />
+      {c.label}
+    </span>
+  )
+}
+
+function AddDomainModal({ open, onClose, onAdded }) {
+  const [domain, setDomain] = useState('')
+  const [method, setMethod] = useState('cname')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const result = await addDomain({ domain: domain.trim(), verification_method: method })
+      onAdded(result)
+      setDomain('')
+      onClose()
+    } catch (err) {
+      setError(err?.message || 'Failed to add domain')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-card border rounded-lg shadow-xl w-full max-w-md p-6 mx-4" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Plus size={20} />
+          Add Custom Domain
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Domain</label>
+            <input
+              type="text"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              placeholder="links.yourdomain.com"
+              className="w-full px-3 py-2 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Verification Method</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="method" value="cname" checked={method === 'cname'} onChange={(e) => setMethod(e.target.value)} />
+                CNAME Record
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="method" value="txt" checked={method === 'txt'} onChange={(e) => setMethod(e.target.value)} />
+                TXT Record
+              </label>
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={loading || !domain.trim()}>
+              {loading ? 'Adding...' : 'Add Domain'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function DnsInstructions({ domain }) {
+  if (domain.verified_at) return null
+
+  const isCname = domain.verification_method === 'cname'
+  return (
+    <div className="mt-3 p-3 bg-muted/50 rounded-md border text-sm space-y-2">
+      <p className="font-medium flex items-center gap-1">
+        <AlertCircle size={14} />
+        DNS Configuration Required
+      </p>
+      {isCname ? (
+        <div className="space-y-1">
+          <p>Add a <strong>CNAME</strong> record:</p>
+          <div className="bg-background p-2 rounded border font-mono text-xs flex items-center justify-between">
+            <span>{domain.domain} → cname.linkforge.app</span>
+            <CopyButton text="cname.linkforge.app" />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <p>Add a <strong>TXT</strong> record:</p>
+          <div className="bg-background p-2 rounded border font-mono text-xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span>Host: _linkforge.{domain.domain}</span>
+              <CopyButton text={`_linkforge.${domain.domain}`} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Value: linkforge-verify={domain.verification_token}</span>
+              <CopyButton text={`linkforge-verify=${domain.verification_token}`} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DomainCard({ domain, onVerify, onDelete, onSetPrimary, onRegenerate }) {
+  const [verifying, setVerifying] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [verifyResult, setVerifyResult] = useState(null)
+
+  const handleVerify = async () => {
+    setVerifying(true)
+    setVerifyResult(null)
+    try {
+      const result = await onVerify(domain.id)
+      setVerifyResult(result)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm(`Remove ${domain.domain}? This cannot be undone.`)) return
+    setDeleting(true)
+    try {
+      await onDelete(domain.id)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="border rounded-lg p-4 bg-card">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <Globe size={20} className="text-muted-foreground" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{domain.domain}</span>
+              {domain.is_primary && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1">
+                  <Star size={10} /> Primary
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              {domain.verified_at ? (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                  <CheckCircle2 size={12} /> Verified
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-yellow-600">
+                  <XCircle size={12} /> Not verified
+                </span>
+              )}
+              <SslBadge status={domain.ssl_status} />
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {domain.verified_at && !domain.is_primary && (
+            <Button variant="outline" size="sm" onClick={() => onSetPrimary(domain.id)}>
+              <Star size={14} className="mr-1" /> Set Primary
+            </Button>
+          )}
+          {!domain.verified_at && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleVerify} disabled={verifying}>
+                <RefreshCw size={14} className={`mr-1 ${verifying ? 'animate-spin' : ''}`} />
+                {verifying ? 'Checking...' : 'Verify'}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => onRegenerate(domain.id)} title="Regenerate token">
+                <RefreshCw size={14} />
+              </Button>
+            </>
+          )}
+          <Button variant="ghost" size="sm" onClick={handleDelete} disabled={deleting} className="text-destructive hover:text-destructive">
+            <Trash2 size={14} />
+          </Button>
+        </div>
+      </div>
+
+      <DnsInstructions domain={domain} />
+
+      {verifyResult && !verifyResult.verified && (
+        <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-yellow-800 dark:text-yellow-200">
+          {verifyResult.message}
+        </div>
+      )}
+      {verifyResult && verifyResult.verified && (
+        <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200">
+          Domain verified successfully! SSL certificate is being provisioned.
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function CustomDomainsPage() {
+  const { user } = useAuthContext()
+  const [domains, setDomains] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+
+  const fetchDomains = useCallback(async () => {
+    try {
+      const result = await getDomains()
+      setDomains(result.domains || [])
+    } catch (err) {
+      console.error('Failed to fetch domains:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchDomains()
+  }, [fetchDomains])
+
+  const handleAdded = (result) => {
+    setDomains((prev) => [result.domain, ...prev])
+  }
+
+  const handleVerify = async (id) => {
+    const result = await verifyDomain(id)
+    if (result.verified) {
+      fetchDomains()
+    }
+    return result
+  }
+
+  const handleDelete = async (id) => {
+    await deleteDomain(id)
+    setDomains((prev) => prev.filter((d) => d.id !== id))
+  }
+
+  const handleSetPrimary = async (id) => {
+    await setPrimaryDomain(id)
+    fetchDomains()
+  }
+
+  const handleRegenerate = async (id) => {
+    await regenerateToken(id)
+    fetchDomains()
+  }
+
+  return (
+    <DashboardLayout navItems={LINKFORGE_NAV_ITEMS} user={user}>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Globe size={24} />
+              Custom Domains
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Use your own domain for branded short links
+            </p>
+          </div>
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus size={16} className="mr-1" />
+            Add Domain
+          </Button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">Loading domains...</div>
+        ) : domains.length === 0 ? (
+          <div className="text-center py-12 border rounded-lg bg-card">
+            <Globe size={48} className="mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium mb-2">No custom domains yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Add a custom domain to create branded short links like links.yourdomain.com/abc
+            </p>
+            <Button onClick={() => setShowAddModal(true)}>
+              <Plus size={16} className="mr-1" />
+              Add Your First Domain
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {domains.map((domain) => (
+              <DomainCard
+                key={domain.id}
+                domain={domain}
+                onVerify={handleVerify}
+                onDelete={handleDelete}
+                onSetPrimary={handleSetPrimary}
+                onRegenerate={handleRegenerate}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Info section */}
+        <div className="border rounded-lg p-4 bg-muted/30">
+          <h3 className="font-medium mb-2">How it works</h3>
+          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+            <li>Add your domain (e.g., links.yourdomain.com)</li>
+            <li>Configure the DNS record as instructed</li>
+            <li>Click Verify to confirm DNS propagation</li>
+            <li>SSL certificate is automatically provisioned</li>
+            <li>Your links now work with your custom domain</li>
+          </ol>
+        </div>
+      </div>
+
+      <AddDomainModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdded={handleAdded}
+      />
+    </DashboardLayout>
+  )
+}
