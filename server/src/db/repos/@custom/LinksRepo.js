@@ -80,7 +80,7 @@ const LinksRepo = {
   /**
    * Update link
    */
-  async update(id, user_id, { target_url, description, is_active }) {
+  async update(id, user_id, { target_url, description, is_active, utm_source, utm_medium, utm_campaign, utm_term, utm_content }) {
     const setClauses = []
     const values = []
     let paramIndex = 1
@@ -97,6 +97,26 @@ const LinksRepo = {
       setClauses.push(`is_active = $${paramIndex++}`)
       values.push(is_active)
     }
+    if (utm_source !== undefined) {
+      setClauses.push(`utm_source = $${paramIndex++}`)
+      values.push(utm_source?.trim() || null)
+    }
+    if (utm_medium !== undefined) {
+      setClauses.push(`utm_medium = $${paramIndex++}`)
+      values.push(utm_medium?.trim() || null)
+    }
+    if (utm_campaign !== undefined) {
+      setClauses.push(`utm_campaign = $${paramIndex++}`)
+      values.push(utm_campaign?.trim() || null)
+    }
+    if (utm_term !== undefined) {
+      setClauses.push(`utm_term = $${paramIndex++}`)
+      values.push(utm_term?.trim() || null)
+    }
+    if (utm_content !== undefined) {
+      setClauses.push(`utm_content = $${paramIndex++}`)
+      values.push(utm_content?.trim() || null)
+    }
 
     if (setClauses.length === 0) {
       return this.findById(id)
@@ -107,7 +127,9 @@ const LinksRepo = {
       `UPDATE links 
        SET ${setClauses.join(', ')}
        WHERE id = $${paramIndex++} AND user_id = $${paramIndex++} AND deleted_at IS NULL
-       RETURNING id, slug, target_url, clicks, description, is_active, created_at, updated_at`,
+       RETURNING id, slug, target_url, clicks, description, is_active,
+                 utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+                 created_at, updated_at`,
       values,
     )
   },

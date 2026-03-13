@@ -136,7 +136,7 @@ router.patch('/links/:id', authenticate, async (req, res, next) => {
       return res.status(403).json({ message: 'Forbidden' })
     }
 
-    const { target_url, description, is_active } = req.body
+    const { target_url, description, is_active, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body
 
     // Validate target URL if provided
     if (target_url !== undefined && !isValidUrl(target_url)) {
@@ -147,6 +147,11 @@ router.patch('/links/:id', authenticate, async (req, res, next) => {
       target_url,
       description,
       is_active,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_term,
+      utm_content,
     })
 
     res.json({ link: updated })
