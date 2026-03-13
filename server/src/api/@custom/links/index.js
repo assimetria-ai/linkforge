@@ -1,4 +1,4 @@
-// @custom — links API for URL shortening
+// @custom — links API for URL shortening with expiration support
 const express = require('express')
 const router = express.Router()
 const { authenticate } = require('../../../lib/@system/Helpers/auth')
@@ -6,9 +6,6 @@ const LinksRepo = require('../../../db/repos/@custom/LinksRepo')
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Generate a random slug (fallback if user doesn't provide one)
- */
 function generateRandomSlug(length = 6) {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let result = ''
@@ -18,16 +15,10 @@ function generateRandomSlug(length = 6) {
   return result
 }
 
-/**
- * Validate slug format (alphanumeric + hyphens + underscores only)
- */
 function isValidSlug(slug) {
   return /^[a-zA-Z0-9_-]+$/.test(slug)
 }
 
-/**
- * Validate URL format
- */
 function isValidUrl(url) {
   try {
     new URL(url)
@@ -37,8 +28,45 @@ function isValidUrl(url) {
   }
 }
 
+function parseExpirationFields(body) {
+  const result = {}
+  if (body.expires_at !== undefined) {
+    if (body.expires_at === null || body.expires_at === '') {
+      result.expires_at = null
+    } else {
+      const d = new Date(body.expires_at)
+      if (isNaN(d.getTime())) {
+        return { error: 'Invalid expires_at date format' }
+      }
+      result.expires_at = d.toISOString()
+    }
+  }
+  if (body.click_limit !== undefined) {
+    if (body.click_limit === null || body.click_limit === '') {
+      result.click_limit = null
+    } else {
+      const limit = parseInt(body.click_limit, 10)
+      if (isNaN(limit) || limit < 1) {
+        return { error: 'click_limit must be a positive integer' }
+      }
+      result.click_limit = limit
+    }
+  }
+  if (body.expiration_alert_days !== undefined) {
+    if (body.expiration_alert_days === null || body.expiration_alert_days === '') {
+      result.expiration_alert_days = null
+    } else {
+      const days = parseInt(body.expiration_alert_days, 10)
+      if (isNaN(days) || days < 1) {
+        return { error: 'expiration_alert_days must be a positive integer' }
+      }
+      result.expiration_alert_days = days
+    }
+  }
+  return result
+}
+
 // ─── GET /api/links ──────────────────────────────────────────────────────────
-// List user's links
 router.get('/links', authenticate, async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit) || 50
@@ -53,8 +81,65 @@ router.get('/links', authenticate, async (req, res, next) => {
   }
 })
 
+// ─── GET /api/links/expired ──────────────────────────────────────────────────
+// Get expired links for the user
+router.get('/links/expired', authenticate, async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50
+    const offset = parseInt(req.query.offset) || 0
+    const links = await LinksRepo.findExpiredByUserId(req.user.id, { limit, offset })
+    res.json({ links })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/links/expiring ─────────────────────────────────────────────────
+// Get links expiring soon (for dashboard alerts)
+router.get('/links/expiring', authenticate, async (req, res, next) => {
+  try {
+    const days = parseInt(req.query.days) || 3
+    const links = await LinksRepo.findExpiringLinks(req.user.id, days)
+    res.json({ links })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/links/stats/top ────────────────────────────────────────────────
+router.get('/links/stats/top', authenticate, async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10
+    const topLinks = await LinksRepo.getTopLinks({ limit })
+    res.json({ links: topLinks })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/links/stats/utm ────────────────────────────────────────────────
+router.get('/links/stats/utm', authenticate, async (req, res, next) => {
+  try {
+    const stats = await LinksRepo.getUtmStats(req.user.id)
+    res.json({ stats })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/links/campaign/:campaign ───────────────────────────────────────
+router.get('/links/campaign/:campaign', authenticate, async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50
+    const offset = parseInt(req.query.offset) || 0
+    const links = await LinksRepo.findByCampaign(req.user.id, req.params.campaign, { limit, offset })
+    res.json({ links })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // ─── GET /api/links/:id ──────────────────────────────────────────────────────
-// Get single link by ID
 router.get('/links/:id', authenticate, async (req, res, next) => {
   try {
     const link = await LinksRepo.findById(req.params.id)
@@ -64,21 +149,27 @@ router.get('/links/:id', authenticate, async (req, res, next) => {
     if (link.user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden' })
     }
-    res.json({ link })
+    // Attach computed expiration status
+    const expStatus = LinksRepo.isExpired(link)
+    res.json({ link: { ...link, expiration_status: expStatus } })
   } catch (err) {
     next(err)
   }
 })
 
 // ─── POST /api/links ─────────────────────────────────────────────────────────
-// Create a new short link (with optional UTM parameters)
 router.post('/links', authenticate, async (req, res, next) => {
   try {
     const { slug, target_url, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body
 
-    // Validate target URL
     if (!target_url || !isValidUrl(target_url)) {
       return res.status(400).json({ message: 'Invalid target URL' })
+    }
+
+    // Parse expiration fields
+    const expFields = parseExpirationFields(req.body)
+    if (expFields.error) {
+      return res.status(400).json({ message: expFields.error })
     }
 
     // Generate or validate slug
@@ -89,13 +180,11 @@ router.post('/links', authenticate, async (req, res, next) => {
           message: 'Invalid slug format. Use only alphanumeric characters, hyphens, and underscores.' 
         })
       }
-      // Check for collision
       const exists = await LinksRepo.slugExists(finalSlug)
       if (exists) {
         return res.status(409).json({ message: 'Slug already exists. Please choose a different one.' })
       }
     } else {
-      // Generate random slug and check for collisions
       let attempts = 0
       do {
         finalSlug = generateRandomSlug(6)
@@ -116,6 +205,9 @@ router.post('/links', authenticate, async (req, res, next) => {
       utm_campaign: utm_campaign?.trim() || null,
       utm_term: utm_term?.trim() || null,
       utm_content: utm_content?.trim() || null,
+      expires_at: expFields.expires_at || null,
+      click_limit: expFields.click_limit || null,
+      expiration_alert_days: expFields.expiration_alert_days || null,
     })
 
     res.status(201).json({ link })
@@ -125,7 +217,6 @@ router.post('/links', authenticate, async (req, res, next) => {
 })
 
 // ─── PATCH /api/links/:id ────────────────────────────────────────────────────
-// Update link
 router.patch('/links/:id', authenticate, async (req, res, next) => {
   try {
     const link = await LinksRepo.findById(req.params.id)
@@ -138,12 +229,18 @@ router.patch('/links/:id', authenticate, async (req, res, next) => {
 
     const { target_url, description, is_active, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body
 
-    // Validate target URL if provided
     if (target_url !== undefined && !isValidUrl(target_url)) {
       return res.status(400).json({ message: 'Invalid target URL' })
     }
 
-    const updated = await LinksRepo.update(link.id, req.user.id, {
+    // Parse expiration fields
+    const expFields = parseExpirationFields(req.body)
+    if (expFields.error) {
+      return res.status(400).json({ message: expFields.error })
+    }
+
+    // If re-activating a link, clear expired_reason
+    const updateFields = {
       target_url,
       description,
       is_active,
@@ -152,16 +249,48 @@ router.patch('/links/:id', authenticate, async (req, res, next) => {
       utm_campaign,
       utm_term,
       utm_content,
-    })
+      ...expFields,
+    }
 
+    // If explicitly re-activating, clear expired state
+    if (is_active === true && link.expired_reason) {
+      updateFields.expired_reason = null
+      updateFields.expiration_alert_sent = false
+    }
+
+    const updated = await LinksRepo.update(link.id, req.user.id, updateFields)
     res.json({ link: updated })
   } catch (err) {
     next(err)
   }
 })
 
+// ─── POST /api/links/bulk/expiration ─────────────────────────────────────────
+// Bulk update expiration settings for multiple links
+router.post('/links/bulk/expiration', authenticate, async (req, res, next) => {
+  try {
+    const { link_ids, expires_at, click_limit } = req.body
+
+    if (!Array.isArray(link_ids) || link_ids.length === 0) {
+      return res.status(400).json({ message: 'link_ids must be a non-empty array' })
+    }
+    if (link_ids.length > 100) {
+      return res.status(400).json({ message: 'Maximum 100 links per bulk operation' })
+    }
+
+    const expFields = parseExpirationFields({ expires_at, click_limit })
+    if (expFields.error) {
+      return res.status(400).json({ message: expFields.error })
+    }
+
+    const updated = await LinksRepo.bulkUpdateExpiration(req.user.id, link_ids, expFields)
+    res.json({ updated, count: updated.length })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // ─── DELETE /api/links/:id ───────────────────────────────────────────────────
-// Delete link (soft delete)
 router.delete('/links/:id', authenticate, async (req, res, next) => {
   try {
     const link = await LinksRepo.findById(req.params.id)
@@ -174,42 +303,6 @@ router.delete('/links/:id', authenticate, async (req, res, next) => {
 
     await LinksRepo.delete(link.id, req.user.id)
     res.status(204).send()
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ─── GET /api/links/stats/top ────────────────────────────────────────────────
-// Get top links by clicks (analytics)
-router.get('/links/stats/top', authenticate, async (req, res, next) => {
-  try {
-    const limit = parseInt(req.query.limit) || 10
-    const topLinks = await LinksRepo.getTopLinks({ limit })
-    res.json({ links: topLinks })
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ─── GET /api/links/stats/utm ────────────────────────────────────────────────
-// Get UTM campaign analytics breakdown
-router.get('/links/stats/utm', authenticate, async (req, res, next) => {
-  try {
-    const stats = await LinksRepo.getUtmStats(req.user.id)
-    res.json({ stats })
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ─── GET /api/links/campaign/:campaign ───────────────────────────────────────
-// Get links filtered by UTM campaign
-router.get('/links/campaign/:campaign', authenticate, async (req, res, next) => {
-  try {
-    const limit = parseInt(req.query.limit) || 50
-    const offset = parseInt(req.query.offset) || 0
-    const links = await LinksRepo.findByCampaign(req.user.id, req.params.campaign, { limit, offset })
-    res.json({ links })
   } catch (err) {
     next(err)
   }

@@ -7,6 +7,7 @@
 const LinksRepo = require('../../db/repos/@custom/LinksRepo')
 const ClickEventRepo = require('../../db/repos/@custom/ClickEventRepo')
 const { generateFingerprint, extractServerSignals } = require('./fingerprint')
+const { fireWebhooks } = require('./webhook-service')
 const logger = require('../@system/Logger')
 
 /**
@@ -82,7 +83,7 @@ async function recordClickEvent(req, link) {
     accept_language: signals.accept_language,
   })
 
-  await ClickEventRepo.create({
+  const clickEvent = await ClickEventRepo.create({
     link_id: link.id,
     slug: link.slug,
     fingerprint_hash,
@@ -97,6 +98,23 @@ async function recordClickEvent(req, link) {
     referer: signals.referer,
     country: null,  // can be populated by GeoIP lookup
     city: null,     // can be populated by GeoIP lookup
+  })
+
+  // Fire webhooks for link.click event (async, non-blocking)
+  fireWebhooks(link.user_id, 'link.click', {
+    click_id: clickEvent.id,
+    link_id: link.id,
+    slug: link.slug,
+    target_url: link.target_url,
+    clicked_at: clickEvent.clicked_at,
+    referrer: signals.referer || null,
+    user_agent: signals.user_agent,
+    ip_address: signals.ip_address,
+    platform: signals.platform || null,
+    country: null,
+    city: null,
+  }).catch(err => {
+    logger.error({ err, link_id: link.id }, 'Failed to fire webhooks for click event')
   })
 }
 

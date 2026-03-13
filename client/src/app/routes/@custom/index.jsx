@@ -6,6 +6,7 @@ import { TeamsPage } from '../../pages/app/@custom/TeamsPage'
 import { TeamDetailPage } from '../../pages/app/@custom/TeamDetailPage'
 import { CustomDomainsPage } from '../../pages/app/@custom/CustomDomainsPage'
 import { AcceptInvitePage } from '../../pages/static/@custom/AcceptInvitePage'
+import WebhooksPage from '../../pages/app/@custom/WebhooksPage'
 import { PrivateRoute } from '@/app/components/@system/PrivateRoute/PrivateRoute'
 
 // @custom — Linkforge product-specific routes
@@ -61,6 +62,15 @@ export const customRoutes = [
     element={
       <PrivateRoute>
         <CustomDomainsPage />
+      </PrivateRoute>
+    }
+  />,
+  <Route
+    key="webhooks"
+    path="/app/webhooks"
+    element={
+      <PrivateRoute>
+        <WebhooksPage />
       </PrivateRoute>
     }
   />,

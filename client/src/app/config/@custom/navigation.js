@@ -1,6 +1,6 @@
 // @custom — Linkforge navigation config
 // Shared nav items for all dashboard pages
-import { LayoutDashboard, Link2, Wand2, Users, BarChart3, Activity, CreditCard, Key, Settings, Globe } from 'lucide-react'
+import { LayoutDashboard, Link2, Wand2, Users, BarChart3, Activity, CreditCard, Key, Settings, Globe, Webhook } from 'lucide-react'
 
 export const LINKFORGE_NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/app' },
@@ -10,6 +10,7 @@ export const LINKFORGE_NAV_ITEMS = [
   { icon: Activity, label: 'Activity', to: '/app/activity' },
   { icon: CreditCard, label: 'Billing', to: '/app/billing' },
   { icon: Globe, label: 'Domains', to: '/app/domains' },
+  { icon: Webhook, label: 'Webhooks', to: '/app/webhooks' },
   { icon: Key, label: 'API Keys', to: '/app/api-keys' },
   { icon: Settings, label: 'Settings', to: '/app/settings' },
 ]
