@@ -13,6 +13,13 @@ const customRoutes = require('./routes/@custom')
 
 const app = express()
 
+// Trust the first reverse proxy (Railway) so req.ip, req.protocol, and
+// X-Forwarded-For headers resolve to the real client values.  Without this,
+// rate limiting, account lockout, and click-tracking all see the proxy IP.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1)
+}
+
 // Health check endpoints registered before all middleware (including CORS) so that
 // infrastructure health probes with no Origin header reach them without triggering
 // CORS rejection. These are the only paths permitted to bypass CORS in production.
