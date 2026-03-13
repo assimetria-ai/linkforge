@@ -71,10 +71,10 @@ router.get('/links/:id', authenticate, async (req, res, next) => {
 })
 
 // ─── POST /api/links ─────────────────────────────────────────────────────────
-// Create a new short link
+// Create a new short link (with optional UTM parameters)
 router.post('/links', authenticate, async (req, res, next) => {
   try {
-    const { slug, target_url, description } = req.body
+    const { slug, target_url, description, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body
 
     // Validate target URL
     if (!target_url || !isValidUrl(target_url)) {
@@ -111,6 +111,11 @@ router.post('/links', authenticate, async (req, res, next) => {
       target_url,
       user_id: req.user.id,
       description: description || null,
+      utm_source: utm_source?.trim() || null,
+      utm_medium: utm_medium?.trim() || null,
+      utm_campaign: utm_campaign?.trim() || null,
+      utm_term: utm_term?.trim() || null,
+      utm_content: utm_content?.trim() || null,
     })
 
     res.status(201).json({ link })
@@ -169,13 +174,37 @@ router.delete('/links/:id', authenticate, async (req, res, next) => {
   }
 })
 
-// ─── GET /api/links/top ──────────────────────────────────────────────────────
+// ─── GET /api/links/stats/top ────────────────────────────────────────────────
 // Get top links by clicks (analytics)
 router.get('/links/stats/top', authenticate, async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit) || 10
     const topLinks = await LinksRepo.getTopLinks({ limit })
     res.json({ links: topLinks })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/links/stats/utm ────────────────────────────────────────────────
+// Get UTM campaign analytics breakdown
+router.get('/links/stats/utm', authenticate, async (req, res, next) => {
+  try {
+    const stats = await LinksRepo.getUtmStats(req.user.id)
+    res.json({ stats })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/links/campaign/:campaign ───────────────────────────────────────
+// Get links filtered by UTM campaign
+router.get('/links/campaign/:campaign', authenticate, async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50
+    const offset = parseInt(req.query.offset) || 0
+    const links = await LinksRepo.findByCampaign(req.user.id, req.params.campaign, { limit, offset })
+    res.json({ links })
   } catch (err) {
     next(err)
   }

@@ -22,3 +22,28 @@ export const deleteLink = (id) =>
 
 export const getTopLinks = ({ limit = 10 } = {}) =>
   api.get(`/links/stats/top?limit=${limit}`)
+
+// ─── QR Code ─────────────────────────────────────────────────────────────────
+
+export const getLinkQrDataUrl = (id, { size = 300, fg, bg, margin } = {}) => {
+  const params = new URLSearchParams({ size: String(size), base_url: window.location.origin })
+  if (fg) params.set('fg', fg)
+  if (bg) params.set('bg', bg)
+  if (margin !== undefined) params.set('margin', String(margin))
+  return api.get(`/links/${id}/qr/dataurl?${params}`)
+}
+
+export const getLinkQrDownloadUrl = (id, { format = 'png', size = 600, fg, bg } = {}) => {
+  const params = new URLSearchParams({ format, size: String(size), base_url: window.location.origin })
+  if (fg) params.set('fg', fg)
+  if (bg) params.set('bg', bg)
+  return `/api/links/${id}/qr?${params}`
+}
+
+// ─── UTM Analytics ───────────────────────────────────────────────────────────
+
+export const getUtmStats = () =>
+  api.get('/links/stats/utm')
+
+export const getLinksByCampaign = (campaign, { limit = 50, offset = 0 } = {}) =>
+  api.get(`/links/campaign/${encodeURIComponent(campaign)}?limit=${limit}&offset=${offset}`)
