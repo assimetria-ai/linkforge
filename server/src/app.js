@@ -69,6 +69,30 @@ if (process.env.NODE_ENV === 'production') {
   const staticJsExists = fs.existsSync(staticJsDir)
   logger.info({ publicDir, indexExists, staticJsExists }, 'static asset directory status')
 
+  // Resolve unhashed static asset requests to their content-hashed equivalents.
+  // Webpack produces files like main.a1b2c3d4.js but health checks and external
+  // monitors may request /static/js/main.js.  This middleware finds the real file
+  // by glob-matching and serves it, so those requests return 200 instead of 404.
+  app.use('/static/js', (req, res, next) => {
+    // Only intercept requests for unhashed .js files (no dot-separated hash segment)
+    const basename = path.basename(req.path, '.js')
+    if (!basename || basename.includes('.')) return next()
+
+    const jsDir = path.join(publicDir, 'static', 'js')
+    try {
+      const files = fs.readdirSync(jsDir)
+      // Match <name>.<hash>.js (8-char hex hash from webpack contenthash:8)
+      const pattern = new RegExp(`^${basename}\\.[a-f0-9]{8}\\.js$`)
+      const match = files.find(f => pattern.test(f))
+      if (match) {
+        return res.sendFile(path.join(jsDir, match))
+      }
+    } catch (_) {
+      // Directory doesn't exist or unreadable — fall through to static/404
+    }
+    next()
+  })
+
   app.use(express.static(publicDir, { maxAge: '1y', immutable: true }))
 }
 
