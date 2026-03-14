@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { Mail, Bell, MessageSquare, Activity, CreditCard } from 'lucide-react'
 import { SettingsSection, SettingsRow } from './UserSettings'
-import { Switch } from '../ui/switch'
+import { Switch } from '../Switch/Switch'
 import { Button } from '../Button/Button'
 
 export function NotificationSettings({ user, onUpdate }) {
@@ -149,7 +149,7 @@ export function NotificationSettings({ user, onUpdate }) {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {preferences.pushEnabled
-                    ? "You'll receive push notifications for selected events"
+                    ? 'You'll receive push notifications for selected events'
                     : 'Enable push notifications to stay updated on the go'}
                 </p>
                 <Button
@@ -226,4 +226,28 @@ export function NotificationSettings({ user, onUpdate }) {
   )
 }
 
-// Switch component imported from ../Switch/Switch above
+// Simple Switch component (if not exists)
+function Switch({ checked, onCheckedChange, disabled = false }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onCheckedChange?.(!checked)}
+      className={cn(
+        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        checked ? 'bg-primary' : 'bg-muted'
+      )}
+    >
+      <span
+        className={cn(
+          'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+          checked ? 'translate-x-5' : 'translate-x-0'
+        )}
+      />
+    </button>
+  )
+}

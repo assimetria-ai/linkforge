@@ -9,10 +9,10 @@ export const register = (data) =>
   apiRequest.post('/users', data)
 
 export const login = (data) =>
-  apiRequest.post('/sessions', data)
+  apiRequest.post('/users/login', data)
 
 export const auth = () =>
-  apiRequest.get('/sessions/me')
+  apiRequest.post('/users/auth')
 
 export const requestResetPassword = (data) =>
   apiRequest.post('/users/password/request', data)
@@ -21,7 +21,7 @@ export const resetPassword = (data) =>
   apiRequest.post('/users/password/reset', data)
 
 export const editUser = (data) =>
-  apiRequest.patch('/users/me', data)
+  apiRequest.post('/users/edit', data)
 
 // ─── Sessions ────────────────────────────────────────────────────────────────
 

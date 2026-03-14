@@ -18,7 +18,7 @@ const db = require('../../../lib/@system/PostgreSQL')
 
 const SERVER_ROOT = path.resolve(__dirname, '../../../../')
 const INDEX_JS = path.join(SERVER_ROOT, 'src/index.js')
-const RUN_JS = path.join(__dirname, '..', 'run.js')
+const RUN_JS = path.join(__dirname, 'run.js')
 
 function log(msg) {
   console.log(`[start][${new Date().toISOString()}] ${msg}`)
@@ -47,8 +47,6 @@ async function dropSchemaMigrations() {
 }
 
 async function main() {
-  let dbReady = false
-
   try {
     // Step 1: Run migrations (first attempt)
     try {
@@ -56,46 +54,37 @@ async function main() {
     } catch (err) {
       log(`Migrations failed (attempt 1): ${err.message}`)
       log('Clearing schema_migrations and retrying...')
-      try {
-        await dropSchemaMigrations()
-        await runMigrations()
-      } catch (retryErr) {
-        log(`Migrations failed (attempt 2): ${retryErr.message}`)
-        log('⚠️ Starting server without migrations — DB may be unavailable')
-      }
+      await dropSchemaMigrations()
+      await runMigrations()
     }
 
     // Step 2: Verify users table actually exists
-    try {
-      let exists = await usersTableExists()
+    let exists = await usersTableExists()
 
-      if (!exists) {
-        log('Ghost migration detected: schema_migrations recorded but users table missing!')
-        await dropSchemaMigrations()
-        await runMigrations()
-        exists = await usersTableExists()
-      }
-
-      if (!exists) {
-        log('⚠️ users table still missing after re-run — starting server anyway (static assets will work)')
-      } else {
-        log('✅ users table verified')
-        dbReady = true
-      }
-    } catch (verifyErr) {
-      log(`⚠️ DB verification failed: ${verifyErr.message} — starting server anyway`)
+    if (!exists) {
+      log('Ghost migration detected: schema_migrations recorded but users table missing!')
+      await dropSchemaMigrations()
+      await runMigrations()
+      exists = await usersTableExists()
     }
 
-    try { db.pgp.end() } catch (_) {}
+    if (!exists) {
+      log('FATAL: users table still missing after re-run. Aborting.')
+      db.pgp.end()
+      process.exit(1)
+    }
+
+    log('✅ users table verified — starting server')
+    db.pgp.end()
 
   } catch (err) {
-    log(`Startup error: ${err.message} — starting server anyway for static assets + healthcheck`)
+    log(`FATAL startup error: ${err.message}`)
     if (err.stack) console.error(err.stack)
     try { db.pgp.end() } catch (_) {}
+    process.exit(1)
   }
 
-  // Step 3: Always start the server (even if DB is down, static assets + healthcheck must work)
-  log(`Starting server (dbReady=${dbReady})...`)
+  // Step 3: Start the server (replace this process)
   const child = spawn('node', [INDEX_JS], { stdio: 'inherit' })
   child.on('exit', code => process.exit(code ?? 0))
   child.on('error', err => {

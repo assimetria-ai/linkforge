@@ -26,7 +26,7 @@ const SCHEMA = [
   // ── Database ──────────────────────────────────────────────────────────────
   {
     key: 'DATABASE_URL',
-    required: false,
+    required: true,
     description: 'PostgreSQL connection string  e.g. postgresql://user:pass@host:5432/dbname',
   },
   {
@@ -303,14 +303,14 @@ function validate() {
   const hasPublicKey = !!(process.env.JWT_PUBLIC_KEY_FILE || process.env.JWT_PUBLIC_KEY)
 
   if (!hasPrivateKey) {
-    warnings.push(
-      '  ⚠  JWT_PRIVATE_KEY_FILE (or JWT_PRIVATE_KEY) — not set (auth disabled). ' +
+    errors.push(
+      '  ✗  JWT_PRIVATE_KEY_FILE (or JWT_PRIVATE_KEY) — required but not set. ' +
       'Run: npm run generate-keys'
     )
   }
   if (!hasPublicKey) {
-    warnings.push(
-      '  ⚠  JWT_PUBLIC_KEY_FILE (or JWT_PUBLIC_KEY) — not set (auth disabled). ' +
+    errors.push(
+      '  ✗  JWT_PUBLIC_KEY_FILE (or JWT_PUBLIC_KEY) — required but not set. ' +
       'Run: npm run generate-keys'
     )
   }
@@ -336,10 +336,10 @@ function validate() {
     const publicKeyPem = readOrInline('JWT_PUBLIC_KEY_FILE', 'JWT_PUBLIC_KEY')
 
     if (hasPrivateKey && (!privateKeyPem.includes('BEGIN') || !privateKeyPem.includes('PRIVATE KEY'))) {
-      warnings.push('  ⚠  JWT_PRIVATE_KEY — does not look like a real PEM key')
+      errors.push('  ✗  JWT_PRIVATE_KEY — must be a real PEM key in production, not a placeholder')
     }
     if (hasPublicKey && (!publicKeyPem.includes('BEGIN') || !publicKeyPem.includes('PUBLIC KEY'))) {
-      warnings.push('  ⚠  JWT_PUBLIC_KEY — does not look like a real PEM key')
+      errors.push('  ✗  JWT_PUBLIC_KEY — must be a real PEM key in production, not a placeholder')
     }
   }
 

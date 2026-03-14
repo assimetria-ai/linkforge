@@ -35,12 +35,12 @@ export default {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: isDev
-      ? 'static/js/[name].js'
-      : 'static/js/[name].[contenthash:8].js',
+      ? 'js/[name].js'
+      : 'js/[name].[contenthash:8].js',
     chunkFilename: isDev
-      ? 'static/js/[name].chunk.js'
-      : 'static/js/[name].[contenthash:8].chunk.js',
-    assetModuleFilename: 'static/assets/[name].[contenthash:8][ext]',
+      ? 'js/[name].chunk.js'
+      : 'js/[name].[contenthash:8].chunk.js',
+    assetModuleFilename: 'assets/[name].[contenthash:8][ext]',
     publicPath: '/',
     clean: true,
   },
@@ -156,11 +156,6 @@ export default {
   // ─── Module Rules ────────────────────────────────────────────────────────────
   module: {
     rules: [
-      // Disable fullySpecified for ESM .js/.mjs/.ts/.tsx so extensionless imports work
-      {
-        test: /\.m?[jt]sx?$/,
-        resolve: { fullySpecified: false },
-      },
       // TypeScript / TSX / JSX
       {
         test: /\.[jt]sx?$/,
@@ -244,21 +239,17 @@ export default {
     // Extract CSS into separate files (production only)
     !isDev &&
       new MiniCssExtractPlugin({
-        filename: 'static/css/[name].[contenthash:8].css',
-        chunkFilename: 'static/css/[name].[contenthash:8].chunk.css',
+        filename: 'css/[name].[contenthash:8].css',
+        chunkFilename: 'css/[name].[contenthash:8].chunk.css',
       }),
 
-    // TypeScript type checking in a separate process (dev only)
-    // In production, babel-loader strips types without checking — TS errors must not
-    // block the Docker build.  The plugin's async:true still marks errors in webpack's
-    // compilation stats, causing exit-code 1.  Restrict to dev where fast feedback matters.
-    isDev &&
-      new ForkTsCheckerWebpackPlugin({
-        async: true,
-        typescript: {
-          configFile: path.resolve(__dirname, 'tsconfig.json'),
-        },
-      }),
+    // TypeScript type checking in a separate process (non-blocking)
+    new ForkTsCheckerWebpackPlugin({
+      async: isDev,
+      typescript: {
+        configFile: path.resolve(__dirname, 'tsconfig.json'),
+      },
+    }),
 
     // Environment variables available in browser bundle
     new webpack.DefinePlugin({

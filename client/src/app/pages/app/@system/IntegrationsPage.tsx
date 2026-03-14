@@ -1,4 +1,3 @@
-// @ts-nocheck
 // @system — Admin integrations status page
 // Shows all configured integration adapters (email, payment, storage, etc.)
 // with their active provider, health status, and test actions.

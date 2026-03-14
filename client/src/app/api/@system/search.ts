@@ -100,7 +100,7 @@ export const deleteIndex = (indexName: string) =>
 // ─── Health (admin) ───────────────────────────────────────────────────────────
 
 export const getSearchHealth = () =>
-  apiRequest.get('/search/health')
+  apiRequest.get<SearchHealthInfo>('/search/health')
 
 export const getSearchHealthAll = () =>
-  apiRequest.get('/search/health/all')
+  apiRequest.get<{ ok: boolean; adapters: Record<string, SearchHealthInfo> }>('/search/health/all')

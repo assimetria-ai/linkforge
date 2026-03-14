@@ -9,7 +9,7 @@
 //   const { hits, total, page, totalPages, setPage } = useSearch({ index: 'products', limit: 10 })
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { search as searchApi, SearchHit, SearchResult } from '../../api/@system/search'
+import { search as searchApi, SearchHit, SearchResult } from '../api/@system/search'
 
 export interface UseSearchOptions<T = SearchHit> {
   /** Index name to search against */
@@ -112,7 +112,7 @@ export function useSearch<T = SearchHit>(options: UseSearchOptions<T>): UseSearc
           return
         }
 
-        const data: SearchResult<T> = res.data as any
+        const data = res.data
         setHits(data.hits)
         setTotal(data.total)
         setPageState(data.page)

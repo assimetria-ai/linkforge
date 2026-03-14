@@ -1,5 +1,5 @@
 const crypto = require('crypto')
-const { verifyTokenAsync, KEYS_CONFIGURED } = require('./jwt')
+const { verifyTokenAsync } = require('./jwt')
 const UserRepo = require('../../../db/repos/@system/UserRepo')
 const ApiKeyRepo = require('../../../db/repos/@system/ApiKeyRepo')
 
@@ -25,11 +25,6 @@ async function authenticate(req, res, next) {
   try {
     const rawToken = extractAccessToken(req)
     if (!rawToken) return res.status(401).json({ message: 'Unauthorized' })
-
-    // API keys don't need JWT keys, so only gate JWT path on KEYS_CONFIGURED
-    if (!rawToken.startsWith('sk_') && !KEYS_CONFIGURED) {
-      return res.status(503).json({ message: 'Authentication service not configured' })
-    }
 
     // API key path: tokens starting with "sk_"
     if (rawToken.startsWith('sk_')) {

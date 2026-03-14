@@ -2,17 +2,15 @@ const cors = require('cors')
 
 const ALLOWED_ORIGINS = [
   process.env.APP_URL,
-  process.env.RAILWAY_PUBLIC_DOMAIN && `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`,
   'http://localhost:5173',
   'http://localhost:3000',
 ].filter(Boolean)
 
 function isOriginAllowed(origin) {
-  // No-origin requests: browser same-origin navigations, static asset loads, curl,
-  // Postman, and server-to-server calls do NOT send an Origin header.
-  // Blocking these in production breaks page loads and static file serving.
-  // Cookie-based CSRF is handled separately by the csrfProtection middleware.
-  if (!origin) return true
+  // Allow no-origin requests (curl, Postman, server-to-server) in development and test.
+  // In production, no-origin requests are denied to prevent CORS bypass via cookie-based auth.
+  // Production healthchecks must use the /healthz path, which is registered before CORS middleware.
+  if (!origin) return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
 
   // Exact match only — wildcard subdomain matching removed (SEC-1500: attacker-registered subdomain risk)
   if (ALLOWED_ORIGINS.includes(origin)) return true
@@ -25,11 +23,7 @@ const corsOptions = {
     if (isOriginAllowed(origin)) {
       callback(null, true)
     } else {
-      // Don't throw — just omit CORS headers. Throwing creates a 500 response
-      // which blocks static assets and page loads from unknown origins.
-      // Cross-origin fetch/XHR will still fail because the browser enforces
-      // the missing Access-Control-Allow-Origin header.
-      callback(null, false)
+      callback(new Error(`CORS: origin '${origin}' not allowed`))
     }
   },
   credentials: true,

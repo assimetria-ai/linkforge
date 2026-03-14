@@ -22,14 +22,14 @@ const alertVariants = cva(
     },
   },
 )
+)
 
 const ICONS = {
-  default: AlertCircle,
-  info: Info,
-  success: CheckCircle2,
-  warning: AlertTriangle,
-  destructive: AlertCircle,
-}
+  default,
+  info,
+  success,
+  warning,
+  destructive }
 
 
 export function Alert({ className, variant = 'default', title, dismissible, children, ...props }) {
