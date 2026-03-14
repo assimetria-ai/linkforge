@@ -105,6 +105,16 @@ if (process.env.NODE_ENV === 'production') {
 const { linkRedirect } = require('./lib/@custom/redirects')
 app.use(linkRedirect)
 
+// Landing page: serve landing.html at root instead of SPA shell (task #12051)
+if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
+  const landingFile = path.join(publicDir, 'landing.html')
+  if (fs.existsSync(landingFile)) {
+    app.get('/', (_req, res) => {
+      res.sendFile(landingFile)
+    })
+  }
+}
+
 // SPA fallback — serve index.html for all non-API, non-static GET requests
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
