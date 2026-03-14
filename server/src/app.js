@@ -98,7 +98,7 @@ if (process.env.NODE_ENV === 'production') {
     next()
   })
 
-  app.use(express.static(publicDir, { maxAge: '1y', immutable: true }))
+  app.use(express.static(publicDir, { index: false, maxAge: '1y', immutable: true }))
 }
 
 // Link shortening redirects (must be before SPA fallback)
