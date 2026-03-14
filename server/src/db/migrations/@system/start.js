@@ -18,7 +18,7 @@ const db = require('../../../lib/@system/PostgreSQL')
 
 const SERVER_ROOT = path.resolve(__dirname, '../../../../')
 const INDEX_JS = path.join(SERVER_ROOT, 'src/index.js')
-const RUN_JS = path.join(__dirname, 'run.js')
+const RUN_JS = path.join(__dirname, '..', 'run.js')
 
 function log(msg) {
   console.log(`[start][${new Date().toISOString()}] ${msg}`)

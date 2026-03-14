@@ -47,12 +47,13 @@ const connectionConfig = {
   // Throw an error if a client cannot be acquired within this period.
   connectionTimeoutMillis: POOL_CONNECTION_TIMEOUT,
 
-  // Require SSL in production with full certificate verification. Set DB_POOL_SSL=false to override.
-  // If a custom CA bundle is needed (e.g. self-signed / private CA), set DB_SSL_CA to the file path.
+  // Require SSL in production. Railway PostgreSQL uses self-signed certs, so
+  // rejectUnauthorized defaults to false unless DB_SSL_REJECT_UNAUTHORIZED=true.
+  // Set DB_POOL_SSL=false to disable SSL entirely. Set DB_SSL_CA for custom CA.
   ssl: process.env.NODE_ENV === 'production' && process.env.DB_POOL_SSL !== 'false'
     ? process.env.DB_SSL_CA
       ? { ca: require('fs').readFileSync(process.env.DB_SSL_CA) }
-      : true
+      : { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' }
     : undefined,
 }
 
