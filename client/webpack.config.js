@@ -28,7 +28,7 @@ export default {
   mode: isDev ? 'development' : 'production',
 
   entry: {
-    main: './src/main.tsx',
+    main: './src/main.jsx',
   },
 
   // ─── Output ─────────────────────────────────────────────────────────────────
