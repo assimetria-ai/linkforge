@@ -58,8 +58,11 @@ app.use('/api', systemRoutes)
 app.use('/api', customRoutes)
 
 // Serve static assets in production (before link redirects so /static/* is served directly)
+// Always register the middleware when NODE_ENV=production — express.static gracefully
+// handles missing directories by passing through to next middleware. The previous
+// fs.existsSync guard at module-load time was fragile (race with Docker COPY, etc.).
 const publicDir = path.join(__dirname, '..', 'public')
-if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
+if (process.env.NODE_ENV === 'production') {
   app.use(express.static(publicDir, { maxAge: '1y', immutable: true }))
 }
 
@@ -68,9 +71,14 @@ const { linkRedirect } = require('./lib/@custom/redirects')
 app.use(linkRedirect)
 
 // SPA fallback — serve index.html for all non-API, non-static GET requests
-if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
+if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    res.sendFile(path.join(publicDir, 'index.html'))
+    const indexPath = path.join(publicDir, 'index.html')
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath)
+    } else {
+      res.status(404).json({ error: 'Not found' })
+    }
   })
 } else {
   // 404 (dev/test — client runs separately)
