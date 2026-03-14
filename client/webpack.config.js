@@ -248,13 +248,17 @@ export default {
         chunkFilename: 'static/css/[name].[contenthash:8].chunk.css',
       }),
 
-    // TypeScript type checking in a separate process (non-blocking)
-    new ForkTsCheckerWebpackPlugin({
-      async: true, // Always async — TS errors are logged but don't block the build
-      typescript: {
-        configFile: path.resolve(__dirname, 'tsconfig.json'),
-      },
-    }),
+    // TypeScript type checking in a separate process (dev only)
+    // In production, babel-loader strips types without checking — TS errors must not
+    // block the Docker build.  The plugin's async:true still marks errors in webpack's
+    // compilation stats, causing exit-code 1.  Restrict to dev where fast feedback matters.
+    isDev &&
+      new ForkTsCheckerWebpackPlugin({
+        async: true,
+        typescript: {
+          configFile: path.resolve(__dirname, 'tsconfig.json'),
+        },
+      }),
 
     // Environment variables available in browser bundle
     new webpack.DefinePlugin({
