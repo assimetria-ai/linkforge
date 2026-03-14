@@ -16,7 +16,7 @@ function WebhooksPage() {
   const fetchWebhooks = useCallback(async () => {
     try {
       const res = await webhooksApi.list()
-      setWebhooks(res.data.webhooks)
+      setWebhooks(res.webhooks || [])
     } catch (err) {
       setError('Failed to load webhooks')
     } finally {
@@ -40,7 +40,7 @@ function WebhooksPage() {
       setForm({ name: '', url: '', secret: '', events: ['link.click'] })
       fetchWebhooks()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save webhook')
+      setError(err?.message || 'Failed to save webhook')
     }
   }
 
@@ -66,7 +66,7 @@ function WebhooksPage() {
     setTestResult(null)
     try {
       const res = await webhooksApi.test(id)
-      setTestResult({ id, ...res.data })
+      setTestResult({ id, ...res })
     } catch (err) {
       setTestResult({ id, success: false, error_message: 'Request failed' })
     } finally {
@@ -87,7 +87,7 @@ function WebhooksPage() {
     setSelectedWebhook(webhook)
     try {
       const res = await webhooksApi.deliveries(webhook.id)
-      setDeliveries(res.data.deliveries)
+      setDeliveries(res.deliveries || [])
     } catch {
       setDeliveries([])
     }

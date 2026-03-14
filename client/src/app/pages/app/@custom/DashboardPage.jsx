@@ -76,29 +76,27 @@ export function DashboardPage() {
         api.get('/analytics/summary'),
       ])
 
-      // Recent links
-      if (linksRes.status === 'fulfilled' && linksRes.value?.data) {
-        const links = Array.isArray(linksRes.value.data) ? linksRes.value.data : linksRes.value.data.links || []
-        setRecentLinks(links.slice(0, 10))
+      // Recent links — response shape: { links: [...], total: n }
+      const recentLinksList = linksRes.status === 'fulfilled' ? (linksRes.value?.links || []) : []
+      if (recentLinksList.length > 0 || linksRes.status === 'fulfilled') {
+        setRecentLinks(recentLinksList.slice(0, 10))
       }
 
-      // Top links
-      if (topRes.status === 'fulfilled' && topRes.value?.data) {
-        const top = Array.isArray(topRes.value.data) ? topRes.value.data : topRes.value.data.links || []
-        setTopLinks(top.slice(0, 5))
+      // Top links — response shape: { links: [...] }
+      if (topRes.status === 'fulfilled' && topRes.value?.links) {
+        setTopLinks(topRes.value.links.slice(0, 5))
       }
 
-      // Expiring links
-      if (expiringRes.status === 'fulfilled' && expiringRes.value?.data) {
-        const exp = Array.isArray(expiringRes.value.data) ? expiringRes.value.data : expiringRes.value.data.links || []
-        setExpiringLinks(exp.slice(0, 5))
+      // Expiring links — response shape: { links: [...] }
+      if (expiringRes.status === 'fulfilled' && expiringRes.value?.links) {
+        setExpiringLinks(expiringRes.value.links.slice(0, 5))
       }
 
-      // Analytics summary
-      if (summaryRes.status === 'fulfilled' && summaryRes.value?.data) {
-        const summary = summaryRes.value.data.links || summaryRes.value.data
+      // Analytics summary — response shape: { links: { total_links, total_clicks, ... } }
+      if (summaryRes.status === 'fulfilled' && summaryRes.value?.links) {
+        const summary = summaryRes.value.links
         setStats({
-          totalLinks: summary.total_links || recentLinks.length || 0,
+          totalLinks: summary.total_links || linksRes.value?.total || recentLinksList.length || 0,
           totalClicks: summary.total_clicks || 0,
           uniqueVisitors: summary.unique_visitors || 0,
           topCountries: summary.top_countries?.length || 0,
@@ -107,7 +105,7 @@ export function DashboardPage() {
         // Fallback: derive stats from links list
         setStats(prev => ({
           ...prev,
-          totalLinks: recentLinks.length,
+          totalLinks: linksRes.value?.total || recentLinksList.length || prev.totalLinks,
         }))
       }
     } catch (err) {
