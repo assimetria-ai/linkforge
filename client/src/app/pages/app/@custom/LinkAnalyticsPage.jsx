@@ -1,17 +1,16 @@
-// @custom — Linkforge: Link Analytics Dashboard with real click data
-import { useState, useEffect, useCallback } from 'react'
+// @custom — Linkforge: Link Analytics Dashboard with click tracking
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Link2, BarChart3, Globe, Copy, Check, ExternalLink,
-  TrendingUp, MousePointer, Monitor, Smartphone, Tablet, Clock,
-  MapPin, RefreshCw, ArrowUpRight, Calendar, Users
+  TrendingUp, MousePointer, Monitor, Smartphone, Tablet, Users,
+  Clock, MapPin, ArrowUpRight, ArrowDownRight, Minus,
 } from 'lucide-react'
 import { DashboardLayout } from '../../../components/@system/Dashboard'
 import { LINKFORGE_NAV_ITEMS } from '../../../config/@custom/navigation'
 import { Button } from '../../../components/@system/ui/button'
-import { getLink } from '../../../api/@custom/links'
+import { getLink, getLinkAnalytics, getLinkClickEvents } from '../../../api/@custom/links'
 import { QrCodePanel } from '../../../components/@custom/QrCodePanel'
-import { api } from '../../../lib/@system/api'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -30,7 +29,9 @@ function CopyButton({ text }) {
   )
 }
 
-function StatBox({ icon: Icon, label, value, color = 'text-primary', subtitle }) {
+function StatBox({ icon: Icon, label, value, subValue, trend, color = 'text-primary' }) {
+  const TrendIcon = trend === 'up' ? ArrowUpRight : trend === 'down' ? ArrowDownRight : Minus
+  const trendColor = trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-muted-foreground'
   return (
     <div className="border rounded-lg p-4 bg-card">
       <div className="flex items-center gap-2 mb-2">
@@ -38,142 +39,141 @@ function StatBox({ icon: Icon, label, value, color = 'text-primary', subtitle })
         <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
       </div>
       <p className="text-2xl font-bold">{value}</p>
-      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      {subValue && (
+        <div className="flex items-center gap-1 mt-1">
+          {trend && <TrendIcon size={12} className={trendColor} />}
+          <span className={`text-xs ${trendColor}`}>{subValue}</span>
+        </div>
+      )}
     </div>
   )
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
+// ─── Simple bar chart (CSS-based, no deps) ───────────────────────────────────
 
-function formatPercent(count, total) {
-  if (!total) return '0%'
-  return `${Math.round((count / total) * 100)}%`
-}
-
-// ─── Bar Chart (simple CSS-based) ────────────────────────────────────────────
-
-function SimpleBarChart({ data, labelKey = 'date', valueKey = 'clicks', maxBars = 30 }) {
+function MiniBarChart({ data, labelKey = 'label', valueKey = 'count', maxBars = 10, color = 'bg-primary' }) {
   if (!data || data.length === 0) {
-    return (
-      <div className="text-center py-8 text-sm text-muted-foreground">
-        No data available yet
-      </div>
-    )
+    return <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
   }
-
-  const sliced = data.slice(-maxBars)
-  const maxVal = Math.max(...sliced.map(d => d[valueKey] || 0), 1)
-
-  return (
-    <div className="flex items-end gap-1 h-40">
-      {sliced.map((item, i) => {
-        const val = item[valueKey] || 0
-        const pct = (val / maxVal) * 100
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 group" title={`${item[labelKey]}: ${val} clicks`}>
-            <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-              {val}
-            </span>
-            <div
-              className="w-full bg-primary/80 rounded-t hover:bg-primary transition-colors min-h-[2px]"
-              style={{ height: `${Math.max(pct, 2)}%` }}
-            />
-            {sliced.length <= 14 && (
-              <span className="text-[9px] text-muted-foreground truncate w-full text-center">
-                {formatDate(item[labelKey])}
-              </span>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Horizontal Bar List ─────────────────────────────────────────────────────
-
-function HorizontalBarList({ items, labelKey = 'name', valueKey = 'count', icon: DefaultIcon, emptyText = 'No data yet' }) {
-  if (!items || items.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-4">{emptyText}</p>
-  }
-
-  const maxVal = Math.max(...items.map(d => d[valueKey] || 0), 1)
-  const total = items.reduce((sum, d) => sum + (d[valueKey] || 0), 0)
+  const sorted = [...data].sort((a, b) => b[valueKey] - a[valueKey]).slice(0, maxBars)
+  const max = Math.max(...sorted.map(d => d[valueKey]), 1)
 
   return (
     <div className="space-y-2">
-      {items.slice(0, 10).map((item, i) => {
-        const val = item[valueKey] || 0
-        const pct = (val / maxVal) * 100
-        return (
-          <div key={i} className="group">
-            <div className="flex items-center justify-between text-sm mb-1">
-              <div className="flex items-center gap-2 truncate">
-                {DefaultIcon && <DefaultIcon size={14} className="text-muted-foreground flex-shrink-0" />}
-                <span className="truncate">{item[labelKey] || 'Direct / Unknown'}</span>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-muted-foreground text-xs">{formatPercent(val, total)}</span>
-                <span className="font-medium tabular-nums">{val.toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="w-full bg-muted rounded-full h-1.5">
-              <div className="bg-primary rounded-full h-1.5 transition-all" style={{ width: `${pct}%` }} />
-            </div>
+      {sorted.map((item, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground w-28 truncate text-right" title={item[labelKey]}>
+            {item[labelKey] || 'Direct'}
+          </span>
+          <div className="flex-1 bg-muted rounded-full h-5 overflow-hidden">
+            <div
+              className={`h-full ${color} rounded-full transition-all duration-500`}
+              style={{ width: `${(item[valueKey] / max) * 100}%`, minWidth: item[valueKey] > 0 ? '2px' : '0' }}
+            />
           </div>
-        )
-      })}
+          <span className="text-xs font-mono font-medium w-12 text-right">{item[valueKey].toLocaleString()}</span>
+        </div>
+      ))}
     </div>
   )
 }
 
-// ─── Events Table ────────────────────────────────────────────────────────────
+// ─── Timeline sparkline ──────────────────────────────────────────────────────
 
-function ClickEventsTable({ events }) {
+function TimelineChart({ data }) {
+  if (!data || data.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-8">No click data yet</p>
+  }
+
+  const max = Math.max(...data.map(d => d.clicks), 1)
+  const barWidth = Math.max(4, Math.floor(100 / data.length))
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end gap-px h-32 w-full">
+        {data.map((d, i) => (
+          <div
+            key={i}
+            className="flex-1 bg-primary/80 hover:bg-primary rounded-t transition-all duration-200 cursor-default group relative"
+            style={{ height: `${Math.max((d.clicks / max) * 100, 2)}%` }}
+            title={`${d.date}: ${d.clicks} clicks`}
+          >
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-popover border rounded px-2 py-1 text-xs shadow-md whitespace-nowrap z-10">
+              <div className="font-medium">{d.clicks} clicks</div>
+              <div className="text-muted-foreground">{d.date}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>{data[0]?.date}</span>
+        <span>{data[data.length - 1]?.date}</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Recent clicks table ─────────────────────────────────────────────────────
+
+function RecentClicksTable({ events }) {
   if (!events || events.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-4">No click events recorded yet</p>
+    return <p className="text-sm text-muted-foreground text-center py-4">No clicks recorded yet</p>
+  }
+
+  const getDeviceIcon = (ua) => {
+    if (!ua) return Monitor
+    const lower = ua.toLowerCase()
+    if (lower.includes('mobile') || lower.includes('iphone') || lower.includes('android')) return Smartphone
+    if (lower.includes('tablet') || lower.includes('ipad')) return Tablet
+    return Monitor
   }
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b text-muted-foreground text-xs">
-            <th className="text-left py-2 pr-4">Time</th>
-            <th className="text-left py-2 pr-4">Referrer</th>
-            <th className="text-left py-2 pr-4">Country</th>
-            <th className="text-left py-2 pr-4">Device</th>
-            <th className="text-left py-2">Browser</th>
+          <tr className="border-b text-left">
+            <th className="py-2 pr-4 text-xs text-muted-foreground font-medium">Time</th>
+            <th className="py-2 pr-4 text-xs text-muted-foreground font-medium">Device</th>
+            <th className="py-2 pr-4 text-xs text-muted-foreground font-medium">Location</th>
+            <th className="py-2 pr-4 text-xs text-muted-foreground font-medium">Referrer</th>
           </tr>
         </thead>
         <tbody>
-          {events.map((evt, i) => (
-            <tr key={evt.id || i} className="border-b last:border-0 hover:bg-muted/50">
-              <td className="py-2 pr-4 whitespace-nowrap text-xs text-muted-foreground">
-                {new Date(evt.clicked_at || evt.created_at).toLocaleString()}
-              </td>
-              <td className="py-2 pr-4 truncate max-w-[200px]">
-                {evt.referrer ? (
-                  <span className="text-xs">{new URL(evt.referrer).hostname}</span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Direct</span>
-                )}
-              </td>
-              <td className="py-2 pr-4 text-xs">{evt.country || '—'}</td>
-              <td className="py-2 pr-4 text-xs">{evt.device_type || evt.platform || '—'}</td>
-              <td className="py-2 text-xs">{evt.browser || '—'}</td>
-            </tr>
-          ))}
+          {events.map((evt, i) => {
+            const DeviceIcon = getDeviceIcon(evt.user_agent)
+            return (
+              <tr key={i} className="border-b border-border/50 hover:bg-muted/50">
+                <td className="py-2 pr-4 whitespace-nowrap">
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={12} className="text-muted-foreground" />
+                    <span className="text-xs">{new Date(evt.created_at).toLocaleString()}</span>
+                  </div>
+                </td>
+                <td className="py-2 pr-4">
+                  <DeviceIcon size={14} className="text-muted-foreground" />
+                </td>
+                <td className="py-2 pr-4">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={12} className="text-muted-foreground" />
+                    <span className="text-xs">{evt.country || evt.ip_country || 'Unknown'}</span>
+                  </div>
+                </td>
+                <td className="py-2 pr-4">
+                  <span className="text-xs text-muted-foreground truncate max-w-[200px] block">
+                    {evt.referrer || 'Direct'}
+                  </span>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
   )
 }
 
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
 export function LinkAnalyticsPage() {
   const { id } = useParams()
@@ -183,40 +183,28 @@ export function LinkAnalyticsPage() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [dateRange, setDateRange] = useState(30)
-  const [refreshing, setRefreshing] = useState(false)
-  const [showEvents, setShowEvents] = useState(false)
-
-  const fetchData = useCallback(async () => {
-    try {
-      setRefreshing(true)
-      const [linkRes, analyticsRes, eventsRes] = await Promise.allSettled([
-        getLink(id),
-        api.get(`/analytics/links/${id}?days=${dateRange}`),
-        api.get(`/analytics/links/${id}/events?limit=50`),
-      ])
-
-      if (linkRes.status === 'fulfilled') {
-        setLink(linkRes.value?.link || linkRes.value?.data?.link || linkRes.value)
-      }
-      if (analyticsRes.status === 'fulfilled') {
-        setAnalytics(analyticsRes.value?.data || analyticsRes.value)
-      }
-      if (eventsRes.status === 'fulfilled') {
-        const evtData = eventsRes.value?.data || eventsRes.value
-        setEvents(evtData?.events || [])
-      }
-    } catch (err) {
-      setError('Failed to load analytics')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [id, dateRange])
+  const [days, setDays] = useState(30)
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    async function load() {
+      try {
+        setLoading(true)
+        const [linkData, analyticsData, eventsData] = await Promise.all([
+          getLink(id),
+          getLinkAnalytics(id, { days }).catch(() => null),
+          getLinkClickEvents(id, { limit: 20 }).catch(() => ({ events: [] })),
+        ])
+        setLink(linkData.link || linkData)
+        setAnalytics(analyticsData)
+        setEvents(eventsData.events || [])
+      } catch (err) {
+        setError('Link not found')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [id, days])
 
   if (loading) {
     return (
@@ -224,10 +212,10 @@ export function LinkAnalyticsPage() {
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-muted rounded w-48" />
           <div className="h-4 bg-muted rounded w-72" />
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => <div key={i} className="h-24 bg-muted rounded-lg" />)}
           </div>
-          <div className="h-48 bg-muted rounded-lg" />
+          <div className="h-40 bg-muted rounded-lg" />
         </div>
       </DashboardLayout>
     )
@@ -251,9 +239,9 @@ export function LinkAnalyticsPage() {
   const uniqueVisitors = analytics?.unique_visitors ?? 0
   const daysSinceCreation = Math.max(1, Math.floor((Date.now() - new Date(link.created_at).getTime()) / (1000 * 60 * 60 * 24)))
   const avgClicksPerDay = (totalClicks / daysSinceCreation).toFixed(1)
-  const conversionRate = totalClicks > 0 && uniqueVisitors > 0
-    ? ((uniqueVisitors / totalClicks) * 100).toFixed(1)
-    : '0'
+  const bounceRate = totalClicks > 0 && uniqueVisitors > 0
+    ? `${((1 - uniqueVisitors / totalClicks) * 100).toFixed(0)}% returning`
+    : null
 
   return (
     <DashboardLayout navItems={LINKFORGE_NAV_ITEMS}>
@@ -264,135 +252,98 @@ export function LinkAnalyticsPage() {
             <ArrowLeft size={16} />
             Back to Links
           </button>
-          <div className="flex items-start justify-between flex-wrap gap-3">
+          <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <Link2 size={20} className="text-primary" />
                 <h1 className="text-xl font-bold font-mono">{shortUrl}</h1>
                 <CopyButton text={shortUrl} />
               </div>
-              <a href={link.target_url || link.original_url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1">
+              <a href={link.target_url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1">
                 <ExternalLink size={12} />
-                {link.target_url || link.original_url}
+                <span className="truncate max-w-md">{link.target_url}</span>
               </a>
               {link.description && (
                 <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(Number(e.target.value))}
-                className="text-xs border rounded px-2 py-1.5 bg-background"
-              >
-                <option value={7}>Last 7 days</option>
-                <option value={14}>Last 14 days</option>
-                <option value={30}>Last 30 days</option>
-                <option value={90}>Last 90 days</option>
-              </select>
-              <Button variant="outline" size="sm" onClick={fetchData} disabled={refreshing}>
-                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              </Button>
-              <span className={`px-2 py-1 text-xs rounded-full ${link.is_active !== false ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                {link.is_active !== false ? 'Active' : 'Inactive'}
-              </span>
-            </div>
+            <span className={`px-2 py-1 text-xs rounded-full ${link.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+              {link.is_active ? 'Active' : 'Inactive'}
+            </span>
           </div>
         </div>
 
-        {/* Stats Row */}
+        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatBox icon={MousePointer} label="Total Clicks" value={totalClicks.toLocaleString()} subtitle={`Last ${dateRange} days`} />
-          <StatBox icon={Users} label="Unique Visitors" value={uniqueVisitors.toLocaleString()} color="text-violet-500" subtitle={`${conversionRate}% unique`} />
-          <StatBox icon={TrendingUp} label="Avg/Day" value={avgClicksPerDay} color="text-green-500" subtitle="Clicks per day" />
-          <StatBox icon={Calendar} label="Age" value={`${daysSinceCreation}d`} color="text-blue-500" subtitle={`Created ${new Date(link.created_at).toLocaleDateString()}`} />
+          <StatBox icon={MousePointer} label="Total Clicks" value={totalClicks.toLocaleString()} subValue={`${avgClicksPerDay}/day avg`} trend={totalClicks > 0 ? 'up' : undefined} />
+          <StatBox icon={Users} label="Unique Visitors" value={uniqueVisitors.toLocaleString()} subValue={bounceRate} color="text-blue-500" />
+          <StatBox icon={TrendingUp} label="Avg/Day" value={avgClicksPerDay} color="text-green-500" />
+          <StatBox icon={Globe} label="Created" value={new Date(link.created_at).toLocaleDateString()} subValue={`${daysSinceCreation}d ago`} color="text-purple-500" />
         </div>
 
-        {/* Click Timeline */}
+        {/* Timeline */}
         <div className="border rounded-lg p-4 bg-card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
+            <h3 className="text-sm font-medium flex items-center gap-2">
               <BarChart3 size={16} />
               Click Timeline
             </h3>
-            <span className="text-xs text-muted-foreground">Last {dateRange} days</span>
+            <div className="flex gap-1">
+              {[7, 14, 30, 90].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDays(d)}
+                  className={`px-2 py-1 text-xs rounded ${days === d ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
           </div>
-          <SimpleBarChart
-            data={analytics?.timeline || []}
-            labelKey="date"
-            valueKey="clicks"
-          />
+          <TimelineChart data={analytics?.timeline} />
         </div>
 
-        {/* Breakdown Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Breakdown charts row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Referrers */}
           <div className="border rounded-lg p-4 bg-card">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <ArrowUpRight size={16} />
+            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+              <ExternalLink size={16} />
               Top Referrers
             </h3>
-            <HorizontalBarList
-              items={analytics?.referrers || []}
-              labelKey="referrer"
-              valueKey="count"
-              icon={ExternalLink}
-              emptyText="No referrer data yet"
-            />
+            <MiniBarChart data={analytics?.referrers} labelKey="referrer" valueKey="count" color="bg-blue-500" />
           </div>
 
           {/* Countries */}
           <div className="border rounded-lg p-4 bg-card">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
               <MapPin size={16} />
-              Top Countries
+              Countries
             </h3>
-            <HorizontalBarList
-              items={analytics?.countries || []}
-              labelKey="country"
-              valueKey="count"
-              icon={Globe}
-              emptyText="No geographic data yet"
-            />
+            <MiniBarChart data={analytics?.countries} labelKey="country" valueKey="count" color="bg-green-500" />
           </div>
+        </div>
 
-          {/* Platforms / Devices */}
-          <div className="border rounded-lg p-4 bg-card">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Monitor size={16} />
-              Platforms
-            </h3>
-            <HorizontalBarList
-              items={analytics?.platforms || []}
-              labelKey="platform"
-              valueKey="count"
-              icon={Smartphone}
-              emptyText="No platform data yet"
-            />
-          </div>
+        {/* Platforms */}
+        <div className="border rounded-lg p-4 bg-card">
+          <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+            <Monitor size={16} />
+            Platforms & Devices
+          </h3>
+          <MiniBarChart data={analytics?.platforms} labelKey="platform" valueKey="count" color="bg-purple-500" />
+        </div>
+
+        {/* Recent Clicks */}
+        <div className="border rounded-lg p-4 bg-card">
+          <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+            <Clock size={16} />
+            Recent Clicks
+          </h3>
+          <RecentClicksTable events={events} />
         </div>
 
         {/* QR Code */}
         <QrCodePanel linkId={link.id} slug={link.slug} />
-
-        {/* Recent Click Events */}
-        <div className="border rounded-lg p-4 bg-card">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Clock size={16} />
-              Recent Click Events
-            </h3>
-            <Button variant="ghost" size="sm" onClick={() => setShowEvents(!showEvents)}>
-              {showEvents ? 'Hide' : 'Show'} Events
-            </Button>
-          </div>
-          {showEvents && <ClickEventsTable events={events} />}
-          {!showEvents && (
-            <p className="text-xs text-muted-foreground">
-              {events.length > 0 ? `${events.length} recent events recorded` : 'No events yet'} — click Show Events to view details
-            </p>
-          )}
-        </div>
 
         {/* Link Details */}
         <div className="border rounded-lg p-4 bg-card">
@@ -401,27 +352,9 @@ export function LinkAnalyticsPage() {
             <dt className="text-muted-foreground">Slug</dt>
             <dd className="font-mono">{link.slug}</dd>
             <dt className="text-muted-foreground">Destination</dt>
-            <dd className="truncate">{link.target_url || link.original_url}</dd>
+            <dd className="truncate">{link.target_url}</dd>
             <dt className="text-muted-foreground">Status</dt>
-            <dd>{link.is_active !== false ? 'Active' : 'Inactive'}</dd>
-            {link.utm_source && (
-              <>
-                <dt className="text-muted-foreground">UTM Source</dt>
-                <dd>{link.utm_source}</dd>
-              </>
-            )}
-            {link.utm_medium && (
-              <>
-                <dt className="text-muted-foreground">UTM Medium</dt>
-                <dd>{link.utm_medium}</dd>
-              </>
-            )}
-            {link.utm_campaign && (
-              <>
-                <dt className="text-muted-foreground">UTM Campaign</dt>
-                <dd>{link.utm_campaign}</dd>
-              </>
-            )}
+            <dd>{link.is_active ? 'Active' : 'Inactive'}</dd>
             {link.expires_at && (
               <>
                 <dt className="text-muted-foreground">Expires</dt>
@@ -431,7 +364,7 @@ export function LinkAnalyticsPage() {
             {link.click_limit && (
               <>
                 <dt className="text-muted-foreground">Click Limit</dt>
-                <dd>{link.click_limit}</dd>
+                <dd>{totalClicks} / {link.click_limit}</dd>
               </>
             )}
             <dt className="text-muted-foreground">Created</dt>
