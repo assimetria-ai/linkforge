@@ -250,7 +250,7 @@ export default {
 
     // TypeScript type checking in a separate process (non-blocking)
     new ForkTsCheckerWebpackPlugin({
-      async: isDev,
+      async: true, // Always async — TS errors are logged but don't block the build
       typescript: {
         configFile: path.resolve(__dirname, 'tsconfig.json'),
       },
