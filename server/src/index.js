@@ -5,7 +5,7 @@ require('dotenv').config()
   const { execFileSync, spawnSync } = require('child_process')
   const path = require('path')
   const node = process.execPath
-  const runJs = path.join(__dirname, 'db/migrations/@system/run.js')
+  const runJs = path.join(__dirname, 'db/migrations/run.js')
   const dropScript = path.join(__dirname, '..', 'scripts', 'drop-schema-migrations.js')
   const log = (msg) => console.log(`[startup][${new Date().toISOString()}] ${msg}`)
   try {
@@ -15,11 +15,12 @@ require('dotenv').config()
   } catch (e) {
     log(`Migrations failed (${e.message}) — clearing schema_migrations and retrying`)
     try {
-      // Drop schema_migrations using a dedicated script (avoids inline -e code anti-pattern)
       spawnSync(node, [dropScript], { stdio: 'inherit', env: process.env })
-    } catch (_) {}
-    execFileSync(node, [runJs], { stdio: 'inherit' })
-    log('Migrations done after recovery.')
+      execFileSync(node, [runJs], { stdio: 'inherit' })
+      log('Migrations done after recovery.')
+    } catch (retryErr) {
+      log(`Migrations retry also failed (${retryErr.message}) — server will start without migrations`)
+    }
   }
 })()
 
