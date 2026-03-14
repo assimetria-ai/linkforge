@@ -51,6 +51,17 @@ export const getLinkQrDownloadUrl = (id, { format = 'png', size = 600, fg, bg } 
   return `/api/links/${id}/qr?${params}`
 }
 
+// ─── Click Analytics ─────────────────────────────────────────────────────────
+
+export const getLinkAnalytics = (id, { days = 30 } = {}) =>
+  api.get(`/analytics/links/${id}?days=${days}`)
+
+export const getLinkClickEvents = (id, { limit = 50, offset = 0 } = {}) =>
+  api.get(`/analytics/links/${id}/events?limit=${limit}&offset=${offset}`)
+
+export const getAnalyticsSummary = () =>
+  api.get('/analytics/summary')
+
 // ─── UTM Analytics ───────────────────────────────────────────────────────────
 
 export const getUtmStats = () =>
