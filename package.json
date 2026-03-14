@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:railway": "cd client && npm install && npm run build && cp -r dist ../server/public && cd ../server && npm install",
+    "build:railway": "cd client && npm install && npm run build && mkdir -p ../server/public && cp -r dist/. ../server/public/ && cd ../server && npm install",
     "start:railway": "node server/src/index.js",
     "bootstrap": "node scripts/@system/dev/bootstrap.js",
     "bootstrap:force": "node scripts/@system/dev/bootstrap.js --force",

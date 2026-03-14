@@ -61,8 +61,14 @@ app.use('/api', customRoutes)
 // Always register the middleware when NODE_ENV=production — express.static gracefully
 // handles missing directories by passing through to next middleware. The previous
 // fs.existsSync guard at module-load time was fragile (race with Docker COPY, etc.).
-const publicDir = path.join(__dirname, '..', 'public')
+const publicDir = process.env.STATIC_DIR || path.join(__dirname, '..', 'public')
 if (process.env.NODE_ENV === 'production') {
+  // Log static asset directory status at startup for debugging deploy issues
+  const indexExists = fs.existsSync(path.join(publicDir, 'index.html'))
+  const staticJsDir = path.join(publicDir, 'static', 'js')
+  const staticJsExists = fs.existsSync(staticJsDir)
+  logger.info({ publicDir, indexExists, staticJsExists }, 'static asset directory status')
+
   app.use(express.static(publicDir, { maxAge: '1y', immutable: true }))
 }
 

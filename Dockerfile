@@ -67,7 +67,7 @@ USER appuser
 
 ENV NODE_ENV=production \
     PORT=4000 \
-    STATIC_DIR=/app/public
+    STATIC_DIR=/app/server/public
 
 EXPOSE 4000
 
