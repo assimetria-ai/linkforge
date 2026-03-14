@@ -3,7 +3,7 @@
 import { LayoutDashboard, Link2, Wand2, Users, BarChart3, Activity, CreditCard, Key, Settings, Globe, Webhook } from 'lucide-react'
 
 export const LINKFORGE_NAV_ITEMS = [
-  { icon: LayoutDashboard, label: 'Dashboard', to: '/app' },
+  { icon: LayoutDashboard, label: 'Dashboard', to: '/app/dashboard' },
   { icon: Link2, label: 'Links', to: '/app/links' },
   { icon: Wand2, label: 'UTM Builder', to: '/app/utm' },
   { icon: Users, label: 'Teams', to: '/app/teams' },

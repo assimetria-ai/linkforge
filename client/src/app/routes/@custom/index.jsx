@@ -7,10 +7,20 @@ import { TeamDetailPage } from '../../pages/app/@custom/TeamDetailPage'
 import { CustomDomainsPage } from '../../pages/app/@custom/CustomDomainsPage'
 import { AcceptInvitePage } from '../../pages/static/@custom/AcceptInvitePage'
 import WebhooksPage from '../../pages/app/@custom/WebhooksPage'
+import { DashboardPage } from '../../pages/app/@custom/DashboardPage'
 import { PrivateRoute } from '@/app/components/@system/PrivateRoute/PrivateRoute'
 
 // @custom — Linkforge product-specific routes
 export const customRoutes = [
+  <Route
+    key="dashboard"
+    path="/app/dashboard"
+    element={
+      <PrivateRoute>
+        <DashboardPage />
+      </PrivateRoute>
+    }
+  />,
   <Route
     key="links"
     path="/app/links"
