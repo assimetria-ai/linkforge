@@ -73,6 +73,10 @@ if (process.env.NODE_ENV === 'production') {
   // Webpack produces files like main.a1b2c3d4.js but health checks and external
   // monitors may request /static/js/main.js.  This middleware finds the real file
   // by glob-matching and serves it, so those requests return 200 instead of 404.
+  //
+  // With webpack maxSize code-splitting, entry chunks can also be named
+  // main-<chunkHash>.<contentHash>.js (e.g. main-4f064d56.8d0459ac.js).
+  // The middleware handles both patterns.
   app.use('/static/js', (req, res, next) => {
     // Only intercept requests for unhashed .js files (no dot-separated hash segment)
     const basename = path.basename(req.path, '.js')
@@ -81,8 +85,9 @@ if (process.env.NODE_ENV === 'production') {
     const jsDir = path.join(publicDir, 'static', 'js')
     try {
       const files = fs.readdirSync(jsDir)
-      // Match <name>.<hash>.js (8-char hex hash from webpack contenthash:8)
-      const pattern = new RegExp(`^${basename}\\.[a-f0-9]{8}\\.js$`)
+      // Pattern 1: <name>.<hash>.js (standard webpack contenthash:8)
+      // Pattern 2: <name>-<chunkHash>.<contentHash>.js (webpack maxSize splitting)
+      const pattern = new RegExp(`^${basename}([.-][a-f0-9]{8}){1,2}\\.js$`)
       const match = files.find(f => pattern.test(f))
       if (match) {
         return res.sendFile(path.join(jsDir, match))
