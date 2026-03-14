@@ -57,14 +57,18 @@ app.use('/api', attachDatabase)
 app.use('/api', systemRoutes)
 app.use('/api', customRoutes)
 
+// Serve static assets in production (before link redirects so /static/* is served directly)
+const publicDir = path.join(__dirname, '..', 'public')
+if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir, { maxAge: '1y', immutable: true }))
+}
+
 // Link shortening redirects (must be before SPA fallback)
 const { linkRedirect } = require('./lib/@custom/redirects')
 app.use(linkRedirect)
 
-// Serve React SPA in production
-const publicDir = path.join(__dirname, '..', 'public')
+// SPA fallback — serve index.html for all non-API, non-static GET requests
 if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir))
   app.get('*', (req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'))
   })
