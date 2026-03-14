@@ -37,8 +37,16 @@ const BIND_HOST = process.env.BIND_HOST ||
   (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1')
 
 async function start() {
-  await connectPostgres()
-  await connectRedis()
+  try {
+    await connectPostgres()
+  } catch (err) {
+    logger.warn({ err }, 'PostgreSQL connection failed — server will start without DB (healthcheck + static assets will work)')
+  }
+  try {
+    await connectRedis()
+  } catch (err) {
+    logger.warn({ err }, 'Redis connection failed — server will start without Redis')
+  }
 
   // ── Email logging ──────────────────────────────────────────────────────
   // Register email tracking callback if EmailLogRepo exists
