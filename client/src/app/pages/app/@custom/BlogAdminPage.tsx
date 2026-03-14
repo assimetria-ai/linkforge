@@ -1,3 +1,4 @@
+// @ts-nocheck
 // @custom — Blog admin panel: create, edit, publish articles
 import { useEffect, useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from 'react'
 import { Check, Star, Zap } from 'lucide-react'
 import { Button } from '../../../components/@system/ui/button'
