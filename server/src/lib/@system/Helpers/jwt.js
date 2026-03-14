@@ -45,16 +45,23 @@ function loadKey(fileEnvVar, inlineEnvVar) {
 const PRIVATE_KEY = loadKey('JWT_PRIVATE_KEY_FILE', 'JWT_PRIVATE_KEY')
 const PUBLIC_KEY = loadKey('JWT_PUBLIC_KEY_FILE', 'JWT_PUBLIC_KEY')
 
-if (!PRIVATE_KEY || !PUBLIC_KEY) {
+const KEYS_CONFIGURED = !!(PRIVATE_KEY && PUBLIC_KEY)
+
+if (!KEYS_CONFIGURED) {
   const msg =
     '[jwt] JWT keys not configured — token operations will fail.\n' +
     '  Option A (file-based, recommended): set JWT_PRIVATE_KEY_FILE and JWT_PUBLIC_KEY_FILE to PEM file paths.\n' +
     '  Option B (inline, for Railway/Doppler): set JWT_PRIVATE_KEY and JWT_PUBLIC_KEY as PEM strings.\n' +
     '  Run: npm run generate-keys  to generate and configure keys automatically.'
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('[jwt] FATAL: JWT keys must be configured in production. ' + msg)
-  }
   console.warn(msg)
+}
+
+function _assertKeysConfigured() {
+  if (!KEYS_CONFIGURED) {
+    const err = new Error('[jwt] JWT keys not configured')
+    err.code = 'JWT_KEYS_NOT_CONFIGURED'
+    throw err
+  }
 }
 
 // Promisified versions of the jsonwebtoken callback API
@@ -65,18 +72,22 @@ const _verifyAsync = promisify(jwt.verify)
 const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL ?? '15m'
 
 function signToken(payload, options = {}) {
+  _assertKeysConfigured()
   return jwt.sign(payload, PRIVATE_KEY, { algorithm: ALGORITHM, expiresIn: ACCESS_TOKEN_TTL, ...options })
 }
 
 function verifyToken(token) {
+  _assertKeysConfigured()
   return jwt.verify(token, PUBLIC_KEY, { algorithms: [ALGORITHM] })
 }
 
 async function signTokenAsync(payload, options = {}) {
+  _assertKeysConfigured()
   return _signAsync(payload, PRIVATE_KEY, { algorithm: ALGORITHM, expiresIn: ACCESS_TOKEN_TTL, ...options })
 }
 
 async function verifyTokenAsync(token) {
+  _assertKeysConfigured()
   return _verifyAsync(token, PUBLIC_KEY, { algorithms: [ALGORITHM] })
 }
 
@@ -96,4 +107,5 @@ module.exports = {
   verifyAccessToken,
   verifyAccessTokenAsync,
   ACCESS_TOKEN_TTL,
+  KEYS_CONFIGURED,
 }
