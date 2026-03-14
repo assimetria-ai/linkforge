@@ -1,4 +1,4 @@
-import api from '../../lib/@system/api'
+import { api } from '../../lib/@system/api'
 
 export const webhooksApi = {
   list: () => api.get('/api/webhooks'),

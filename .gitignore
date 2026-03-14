@@ -31,3 +31,4 @@ server/.keys/
 backups/*.dump
 backups/*.dump.gz
 *.backup-insecure
+server/public/

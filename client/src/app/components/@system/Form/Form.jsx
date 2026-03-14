@@ -65,4 +65,12 @@ function Textarea({ className, error, ...props }) {
   )
 }
 
-export { FormField, Input, Textarea }
+// Aliases for backwards compatibility
+const Form = 'form'
+const FormLabel = ({ htmlFor, children, ...props }) => (
+  <label htmlFor={htmlFor} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" {...props}>{children}</label>
+)
+const FormInput = Input
+const FormTextarea = Textarea
+
+export { FormField, Input, Textarea, Form, FormLabel, FormInput, FormTextarea }
