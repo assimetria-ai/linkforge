@@ -32,10 +32,10 @@ module.exports = {
 
     // Indexes for performance
     await db.none(`
-      CREATE INDEX idx_file_uploads_user_id ON file_uploads(user_id) WHERE deleted_at IS NULL;
-      CREATE INDEX idx_file_uploads_deleted_at ON file_uploads(deleted_at);
-      CREATE INDEX idx_file_uploads_created_at ON file_uploads(created_at);
-      CREATE INDEX idx_file_uploads_folder ON file_uploads(folder) WHERE deleted_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_file_uploads_user_id ON file_uploads(user_id) WHERE deleted_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_file_uploads_deleted_at ON file_uploads(deleted_at);
+      CREATE INDEX IF NOT EXISTS idx_file_uploads_created_at ON file_uploads(created_at);
+      CREATE INDEX IF NOT EXISTS idx_file_uploads_folder ON file_uploads(folder) WHERE deleted_at IS NULL;
     `)
 
     // View for user storage usage
@@ -68,7 +68,7 @@ module.exports = {
 
     // Index for lookups
     await db.none(`
-      CREATE INDEX idx_storage_quotas_user_id ON storage_quotas(user_id);
+      CREATE INDEX IF NOT EXISTS idx_storage_quotas_user_id ON storage_quotas(user_id);
     `)
 
     // Function to get user's current storage usage and quota
