@@ -40,28 +40,19 @@ const {
 })
 
 /**
- * Auth-related paths exempt from CSRF validation.
- * These endpoints either create new sessions (login/register) or handle
- * external OAuth callbacks — there is no existing session to protect from
- * cross-site forgery, so CSRF tokens are unnecessary and would block
- * unauthenticated users from signing up or logging in.
+ * Routes exempt from CSRF validation.
+ * Auth routes (register/login/forgot-password) are called before the client
+ * has a session, so CSRF protection doesn't apply — there's no cookie to steal.
+ * Webhook routes receive server-to-server calls that can't carry CSRF tokens.
  */
 const CSRF_EXEMPT_PATHS = [
-  '/users',            // POST — registration
-  '/sessions',         // POST — login
-  '/sessions/refresh', // POST — token rotation
-  '/auth/login',       // POST — login alias
-  '/auth/register',    // POST — registration alias
+  '/api/auth/register',
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/refresh',
+  '/api/webhook',
 ]
-
-const isExemptPath = (req) => {
-  // req.path is relative to the mount point (e.g. /api), so /api/users → /users
-  const p = req.path
-  if (CSRF_EXEMPT_PATHS.includes(p)) return true
-  // Exempt all OAuth callback routes (e.g. /oauth/google/callback)
-  if (p.startsWith('/oauth/')) return true
-  return false
-}
 
 /**
  * CSRF protection middleware that validates tokens on state-changing requests
@@ -72,8 +63,8 @@ const csrfProtection = (req, res, next) => {
     return next()
   }
 
-  // Skip CSRF for pre-authentication endpoints (no session to protect)
-  if (isExemptPath(req)) {
+  // Skip CSRF for auth and webhook routes (no session to protect)
+  if (CSRF_EXEMPT_PATHS.some(p => req.path.startsWith(p.replace('/api', '')))) {
     return next()
   }
 
