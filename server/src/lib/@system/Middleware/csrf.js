@@ -48,6 +48,14 @@ const csrfProtection = (req, res, next) => {
     return next()
   }
 
+  // Exempt auth endpoints from CSRF — these are entry points where no session
+  // (and therefore no CSRF token) exists yet. They are protected by rate limiting.
+  const exemptPaths = ['/auth/login', '/auth/register', '/sessions']
+  const pathWithoutPrefix = req.path // already under /api mount
+  if (exemptPaths.some(p => pathWithoutPrefix === p || pathWithoutPrefix.startsWith(p + '/'))) {
+    return next()
+  }
+
   doubleCsrfProtection(req, res, (err) => {
     if (err) {
       return res.status(403).json({ 
