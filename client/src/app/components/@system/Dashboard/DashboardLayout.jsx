@@ -21,7 +21,7 @@ import { Home, Settings, Shield, CreditCard, Activity, Key, LayoutDashboard, Men
 import { Button } from '../ui/button'
 import { Header } from '../Header/Header'
 import { Sidebar, SidebarLogo, SidebarSection, SidebarItem } from '../Sidebar/Sidebar'
-import { info } from '@/config/@system/info'
+import { info } from '@/config'
 import { useAuthContext } from '@/app/store/@system/auth'
 import { cn } from '@/app/lib/@system/utils'
 

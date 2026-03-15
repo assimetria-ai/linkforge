@@ -2,7 +2,7 @@
 // @custom — Customise FOOTER_LINKS and SOCIAL_LINKS below per product
 import { Link } from 'react-router-dom'
 import { Twitter, Github, Linkedin, Youtube, Mail } from 'lucide-react'
-import { info } from '@/config/@system/info'
+import { info } from '@/config'
 
 // ── Link columns ─────────────────────────────────────────────────────────────
 const FOOTER_LINKS = [

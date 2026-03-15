@@ -13,7 +13,7 @@ import { Header } from '../../../components/@system/Header/Header'
 import { Footer } from '../../../components/@system/Footer/Footer'
 import { Card, CardContent } from '../../../components/@system/Card/Card'
 import { Button } from '../../../components/@system/ui/button'
-import { info } from '../../../../config/@system/info'
+import { info } from '@/config'
 import { cn } from '../../../lib/@system/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────────

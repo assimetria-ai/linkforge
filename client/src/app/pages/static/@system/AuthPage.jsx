@@ -7,7 +7,7 @@ import { Button } from '../../../components/@system/ui/button'
 import { FormField, Input } from '../../../components/@system/Form/Form'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/@system/Card/Card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/@system/Tabs/Tabs'
-import { info } from '../../../../config/@system/info'
+import { info } from '@/config'
 import { OAuthButtons } from '../../../components/@system/OAuthButtons/OAuthButtons'
 import { api } from '../../../lib/@system/api'
 

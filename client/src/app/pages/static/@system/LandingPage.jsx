@@ -8,7 +8,7 @@ import { Footer } from '../../../components/@system/Footer/Footer'
 import { Card, CardContent } from '../../../components/@system/Card/Card'
 import { FeaturesSection } from '../../../components/@system/FeaturesSection'
 import { OgMeta } from '../../../components/@system/OgMeta/OgMeta'
-import { info } from '../../../../config/@system/info'
+import { info } from '@/config'
 
 const PLANS = [
   {

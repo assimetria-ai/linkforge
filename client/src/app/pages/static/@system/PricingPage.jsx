@@ -8,7 +8,7 @@ import { Button } from '../../../components/@system/ui/button'
 import { Badge } from '../../../components/@system/Badge/Badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/@system/Card/Card'
 import { useAuthContext } from '../../../store/@system/auth'
-import { info } from '@/config/@system/info'
+import { info } from '@/config'
 import {
   getPlans,
   createCheckoutSession,
