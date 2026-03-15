@@ -55,6 +55,8 @@ const CSRF_EXEMPT_PATHS = [
   '/api/sessions/refresh',
   '/api/sessions/register',
   '/api/webhook',
+  '/api/stripe/webhook',
+  '/api/payments/webhook',
 ]
 
 /**

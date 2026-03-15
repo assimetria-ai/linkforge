@@ -99,6 +99,27 @@ const UXDemoPage = lazy(() =>
 const MobileResponsiveDemo = lazy(() =>
   import('../../pages/app/@system/MobileResponsiveDemo').then((m) => ({ default: m.MobileResponsiveDemo }))
 )
+const ContentCalendarPage = lazy(() =>
+  import('../../pages/app/@custom/ContentCalendarPage').then((m) => ({ default: m.ContentCalendarPage }))
+)
+const HashtagResearchPage = lazy(() =>
+  import('../../pages/app/@custom/HashtagResearchPage').then((m) => ({ default: m.HashtagResearchPage }))
+)
+const PostsList = lazy(() =>
+  import('../../pages/app/@custom/PostsList').then((m) => ({ default: m.PostsList }))
+)
+const PostScheduler = lazy(() =>
+  import('../../pages/app/@custom/PostScheduler').then((m) => ({ default: m.PostScheduler }))
+)
+const ContentTemplatesPage = lazy(() =>
+  import('../../pages/app/@custom/ContentTemplatesPage')
+)
+const EngagementAnalyticsPage = lazy(() =>
+  import('../../pages/app/@custom/EngagementAnalyticsPage')
+)
+const AnalyticsDashboardPage = lazy(() =>
+  import('../../pages/app/@custom/AnalyticsDashboardPage').then((m) => ({ default: m.AnalyticsDashboardPage }))
+)
 
 // Teams pages
 const TeamsPage = lazy(() =>
@@ -269,6 +290,72 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <MobileResponsiveDemo />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Content Calendar */}
+        <Route
+          path="/app/calendar"
+          element={
+            <ProtectedRoute>
+              <ContentCalendarPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Posts */}
+        <Route
+          path="/app/posts"
+          element={
+            <ProtectedRoute>
+              <PostsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/app/posts/new"
+          element={
+            <ProtectedRoute>
+              <PostScheduler />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Hashtag Research */}
+        <Route
+          path="/app/hashtags"
+          element={
+            <ProtectedRoute>
+              <HashtagResearchPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Content Templates */}
+        <Route
+          path="/app/templates"
+          element={
+            <ProtectedRoute>
+              <ContentTemplatesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Engagement Analytics */}
+        <Route
+          path="/app/analytics"
+          element={
+            <ProtectedRoute>
+              <AnalyticsDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/app/analytics/engagement"
+          element={
+            <ProtectedRoute>
+              <EngagementAnalyticsPage />
             </ProtectedRoute>
           }
         />

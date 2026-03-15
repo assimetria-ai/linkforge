@@ -45,7 +45,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trigger_file_uploads_updated_at ON file_uploads;
 CREATE TRIGGER trigger_file_uploads_updated_at
   BEFORE UPDATE ON file_uploads
   FOR EACH ROW
