@@ -56,6 +56,24 @@ if (process.env.NODE_ENV === 'production') {
     })
   }
 
+  // SEO files — explicit routes with correct content-type and short cache
+  const sitemapFile = path.join(publicDir, 'sitemap.xml')
+  if (fs.existsSync(sitemapFile)) {
+    app.get('/sitemap.xml', (_req, res) => {
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8')
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate')
+      res.sendFile(sitemapFile)
+    })
+  }
+  const robotsFile = path.join(publicDir, 'robots.txt')
+  if (fs.existsSync(robotsFile)) {
+    app.get('/robots.txt', (_req, res) => {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate')
+      res.sendFile(robotsFile)
+    })
+  }
+
   // Resolve unhashed static JS requests to content-hashed equivalents
   app.use('/static/js', (req, res, next) => {
     const basename = path.basename(req.path, '.js')

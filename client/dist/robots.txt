@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /api/
+Disallow: /onboarding
+Disallow: /2fa/
+
+Sitemap: https://linkforge-production-0c1e.up.railway.app/sitemap.xml
