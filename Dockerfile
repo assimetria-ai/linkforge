@@ -35,6 +35,8 @@ COPY server/package*.json ./server/
 # Pre-built frontend assets (using committed client/dist to bypass webpack errors)
 COPY client/dist ./server/public
 
+# Favicon files
+COPY client/public/favicon* ./server/public/
 # Landing page — served as public homepage for unauthenticated visitors at /
 COPY server/landing.html ./server/public/landing.html
 
