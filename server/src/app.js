@@ -83,7 +83,10 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ── CORS + body parsing (API routes) ────────────────────────────────────────
-app.use(cors)
+// CORS is scoped to /api only. Browser navigation (typing URL, clicking links)
+// sends no Origin header and must reach the SPA fallback without CORS rejection.
+// Static assets are already served above; only fetch/XHR API calls need CORS.
+app.use('/api', cors)
 app.use(express.json({ limit: '10mb' }))
 app.use(cookieParser())
 
