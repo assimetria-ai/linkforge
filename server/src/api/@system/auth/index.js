@@ -135,8 +135,8 @@ router.post('/auth/login', loginLimiter, validate({ body: LoginBody }), async (r
 
 // POST /api/auth/register — register (alias for POST /api/users)
 router.post('/auth/register', async (req, res, next) => {
-  // Forward to the user creation endpoint by re-routing the request
-  // Must use /api/users since routes are mounted at /api prefix
+  // Forward to the user creation endpoint by re-routing the request.
+  // Routes are mounted at /api, so re-entry must include the /api prefix.
   req.url = '/api/users'
   req.app.handle(req, res, next)
 })
