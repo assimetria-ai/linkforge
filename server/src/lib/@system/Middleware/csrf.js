@@ -40,11 +40,38 @@ const {
 })
 
 /**
+ * Auth-related paths exempt from CSRF validation.
+ * These endpoints either create new sessions (login/register) or handle
+ * external OAuth callbacks — there is no existing session to protect from
+ * cross-site forgery, so CSRF tokens are unnecessary and would block
+ * unauthenticated users from signing up or logging in.
+ */
+const CSRF_EXEMPT_PATHS = [
+  '/users',            // POST — registration
+  '/sessions',         // POST — login
+  '/sessions/refresh', // POST — token rotation
+]
+
+const isExemptPath = (req) => {
+  // req.path is relative to the mount point (e.g. /api), so /api/users → /users
+  const p = req.path
+  if (CSRF_EXEMPT_PATHS.includes(p)) return true
+  // Exempt all OAuth callback routes (e.g. /oauth/google/callback)
+  if (p.startsWith('/oauth/')) return true
+  return false
+}
+
+/**
  * CSRF protection middleware that validates tokens on state-changing requests
  */
 const csrfProtection = (req, res, next) => {
   // Skip CSRF validation in test/development environments if needed
   if (process.env.NODE_ENV === 'test' || process.env.SKIP_CSRF === 'true') {
+    return next()
+  }
+
+  // Skip CSRF for pre-authentication endpoints (no session to protect)
+  if (isExemptPath(req)) {
     return next()
   }
 
