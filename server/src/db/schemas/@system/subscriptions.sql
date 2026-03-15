@@ -9,9 +9,13 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   current_period_start  TIMESTAMPTZ,
   current_period_end    TIMESTAMPTZ,
   cancel_at_period_end  BOOLEAN NOT NULL DEFAULT false,
+  brand_id              INTEGER REFERENCES brands(id) ON DELETE SET NULL,
+  plan_name             TEXT,
+  payment_provider      TEXT DEFAULT 'stripe',
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_brand_id ON subscriptions(brand_id);

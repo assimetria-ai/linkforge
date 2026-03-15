@@ -51,6 +51,9 @@ const CSRF_EXEMPT_PATHS = [
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/refresh',
+  '/api/sessions',
+  '/api/sessions/refresh',
+  '/api/sessions/register',
   '/api/webhook',
 ]
 

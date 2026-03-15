@@ -96,6 +96,40 @@ function clearAuthCookies(res) {
 
 // ── Routes ─────────────────────────────────────────────────────────────────
 
+// POST /api/sessions/register — create a new account
+router.post('/sessions/register', async (req, res, next) => {
+  try {
+    const { email, password, name } = req.body
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' })
+    }
+
+    const normalizedEmail = email.toLowerCase()
+
+    // Check if user already exists
+    const existing = await UserRepo.findByEmail(normalizedEmail)
+    if (existing) {
+      return res.status(409).json({ message: 'An account with this email already exists' })
+    }
+
+    // Hash password and create user
+    const password_hash = await bcrypt.hash(password, 12)
+    const user = await UserRepo.create({ email: normalizedEmail, name: name || null, password_hash })
+
+    // Issue tokens immediately (auto-login after registration)
+    const accessToken = await signAccessTokenAsync({ userId: user.id })
+    const { token: refreshToken } = await RefreshTokenRepo.create({ userId: user.id })
+
+    setAccessCookie(res, accessToken)
+    setRefreshCookie(res, refreshToken)
+
+    res.status(201).json({ user: { id: user.id, email: user.email, name: user.name } })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // POST /api/sessions — login
 router.post('/sessions', loginLimiter, validate({ body: LoginBody }), async (req, res, next) => {
   try {
