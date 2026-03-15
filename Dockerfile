@@ -61,17 +61,10 @@ COPY server/package*.json ./server/
 # Built frontend assets (served by Express as static files or a CDN)
 # Server looks for static files at server/src/../public = server/public
 COPY --from=client-build /app/client/dist ./server/public
+
+# Landing page — served as public homepage for unauthenticated visitors at /
+# server/landing.html is the branded Linkforge landing page (not the redirect stub)
 COPY server/landing.html ./server/public/landing.html
-
-# Landing page — served as public homepage for unauthenticated visitors
-
-
-
-# Landing page: copy landing.html into server/public/ so Express serves it at /
-# instead of the SPA shell. Real landing pages are synced from the OS brands
-# directory by sync-landing-pages.sh. The template ships a default fallback
-# that redirects to /app (the SPA). (task #12051)
-COPY landing.html ./server/public/landing.html
 
 RUN chown -R appuser:appgroup /app
 USER appuser
