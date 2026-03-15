@@ -21,14 +21,14 @@ const alertVariants = cva(
     },
   },
 )
-)
 
 const ICONS = {
-  default,
-  info,
-  success,
-  warning,
-  destructive }
+  default: AlertCircle,
+  info: Info,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  destructive: AlertCircle,
+}
 
 export function Alert({ className, variant = 'default', title, dismissible, onClose, children, ...props }) {
   const [dismissed, setDismissed] = useState(false)
