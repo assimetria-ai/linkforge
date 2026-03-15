@@ -7,10 +7,12 @@ const ALLOWED_ORIGINS = [
 ].filter(Boolean)
 
 function isOriginAllowed(origin) {
-  // Allow no-origin requests (curl, Postman, server-to-server) in development and test.
-  // In production, no-origin requests are denied to prevent CORS bypass via cookie-based auth.
-  // Production healthchecks must use the /healthz path, which is registered before CORS middleware.
-  if (!origin) return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+  // Allow no-origin requests: browser page navigations (typing URL, bookmarks, links),
+  // server-to-server calls, curl, and Postman all omit the Origin header.
+  // CORS only governs *cross-origin* requests (fetch/XHR with Origin header).
+  // Blocking no-origin requests breaks normal page loads in production.
+  // Cookie-based auth is protected by SameSite cookie attributes and CSRF tokens, not CORS.
+  if (!origin) return true
 
   // Exact match only — wildcard subdomain matching removed (SEC-1500: attacker-registered subdomain risk)
   if (ALLOWED_ORIGINS.includes(origin)) return true
