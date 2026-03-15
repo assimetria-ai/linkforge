@@ -13,6 +13,7 @@
 
 import { Github } from 'lucide-react'
 import { Button } from '../ui/button'
+import { cn } from '@/app/lib/@system/utils'
 
 // Google uses official brand colors not available in lucide-react
 function GoogleIcon() {
@@ -47,32 +48,44 @@ export function OAuthButtons({ className = '' }) {
   }
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      <div className="relative flex items-center py-2">
+    <div className={`space-y-3 sm:space-y-2 ${className}`}>
+      {/* Mobile-optimized divider */}
+      <div className="relative flex items-center py-2 sm:py-2">
         <div className="flex-1 border-t border-border" />
-        <span className="mx-3 text-xs text-muted-foreground">or continue with</span>
+        <span className="mx-3 sm:mx-3 text-xs sm:text-xs text-muted-foreground">or continue with</span>
         <div className="flex-1 border-t border-border" />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      {/* Mobile-first: larger buttons with better spacing */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-2">
         <Button
           type="button"
           variant="outline"
-          className="w-full gap-2"
+          className={cn(
+            'w-full gap-2 h-11 sm:h-10', // Touch-friendly height on mobile
+            'touch-target', // WCAG 2.5.5 compliant
+            'text-sm sm:text-sm',
+          )}
           onClick={() => initiateOAuth('google')}
         >
-          <GoogleIcon />
-          Google
+          <span className="scale-110 sm:scale-100">
+            <GoogleIcon />
+          </span>
+          <span className="hidden xs:inline">Google</span>
         </Button>
 
         <Button
           type="button"
           variant="outline"
-          className="w-full gap-2"
+          className={cn(
+            'w-full gap-2 h-11 sm:h-10', // Touch-friendly height on mobile
+            'touch-target', // WCAG 2.5.5 compliant
+            'text-sm sm:text-sm',
+          )}
           onClick={() => initiateOAuth('github')}
         >
-          <Github className="h-4 w-4" aria-hidden="true" />
-          GitHub
+          <Github className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden="true" />
+          <span className="hidden xs:inline">GitHub</span>
         </Button>
       </div>
     </div>

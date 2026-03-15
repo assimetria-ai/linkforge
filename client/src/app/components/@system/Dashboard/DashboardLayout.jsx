@@ -17,7 +17,7 @@
 
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Settings, Shield, CreditCard, Activity, Key, LayoutDashboard, Menu, Users, Calendar, Hash, FileText, BarChart3 } from 'lucide-react'
+import { Home, Settings, Shield, CreditCard, Activity, Key, LayoutDashboard, Menu, Users } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Header } from '../Header/Header'
 import { Sidebar, SidebarLogo, SidebarSection, SidebarItem } from '../Sidebar/Sidebar'
@@ -27,11 +27,6 @@ import { cn } from '@/app/lib/@system/utils'
 
 const DEFAULT_NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/app' },
-  { icon: FileText, label: 'Posts', to: '/app/posts' },
-  { icon: Calendar, label: 'Calendar', to: '/app/calendar' },
-  { icon: Hash, label: 'Hashtags', to: '/app/hashtags' },
-  { icon: FileText, label: 'Templates', to: '/app/templates' },
-  { icon: BarChart3, label: 'Analytics', to: '/app/analytics' },
   { icon: Users, label: 'Teams', to: '/app/teams' },
   { icon: Activity, label: 'Activity', to: '/app/activity' },
   { icon: CreditCard, label: 'Billing', to: '/app/billing' },

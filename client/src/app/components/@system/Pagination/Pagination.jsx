@@ -66,7 +66,7 @@ export function Pagination({
 
   return (
     <nav
-      className={cn('flex items-center justify-center gap-1', className)}
+      className={cn('flex items-center justify-center gap-1 sm:gap-2', className)}
       aria-label="Pagination"
     >
       {/* Previous button */}
@@ -76,20 +76,20 @@ export function Pagination({
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         aria-label="Previous page"
-        className="gap-1"
+        className="gap-1 h-10 sm:h-9 px-3 sm:px-3 touch-target"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-4 w-4 sm:h-4 sm:w-4" />
         <span className="hidden sm:inline">Previous</span>
       </Button>
 
       {/* Page numbers */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 sm:gap-1">
         {pages.map((page, index) => {
           if (page === '...') {
             return (
               <span
                 key={`ellipsis-${index}`}
-                className="flex h-9 w-9 items-center justify-center text-muted-foreground"
+                className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center text-muted-foreground"
               >
                 <MoreHorizontal className="h-4 w-4" />
               </span>
@@ -102,7 +102,7 @@ export function Pagination({
               variant={page === currentPage ? 'default' : 'outline'}
               size="sm"
               onClick={() => onPageChange(page)}
-              className="h-9 w-9"
+              className="h-10 w-10 sm:h-9 sm:w-9 text-sm sm:text-sm touch-target"
               aria-label={`Page ${page}`}
               aria-current={page === currentPage ? 'page' : undefined}
             >
@@ -119,10 +119,10 @@ export function Pagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         aria-label="Next page"
-        className="gap-1"
+        className="gap-1 h-10 sm:h-9 px-3 sm:px-3 touch-target"
       >
         <span className="hidden sm:inline">Next</span>
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-4 w-4 sm:h-4 sm:w-4" />
       </Button>
     </nav>
   )
@@ -143,18 +143,18 @@ export function SimplePagination({
   className,
 }) {
   return (
-    <nav className={cn('flex items-center justify-between', className)}>
+    <nav className={cn('flex items-center justify-between gap-3 sm:gap-4', className)}>
       <Button
         variant="outline"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="gap-2"
+        className="gap-1 sm:gap-2 h-10 sm:h-9 px-3 sm:px-4 touch-target"
       >
-        <ChevronLeft className="h-4 w-4" />
-        Previous
+        <ChevronLeft className="h-4 w-4 sm:h-4 sm:w-4" />
+        <span className="hidden xs:inline sm:inline">Previous</span>
       </Button>
 
-      <span className="text-sm text-muted-foreground">
+      <span className="text-xs sm:text-sm text-muted-foreground font-medium">
         Page {currentPage} of {totalPages}
       </span>
 
@@ -162,10 +162,10 @@ export function SimplePagination({
         variant="outline"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="gap-2"
+        className="gap-1 sm:gap-2 h-10 sm:h-9 px-3 sm:px-4 touch-target"
       >
-        Next
-        <ChevronRight className="h-4 w-4" />
+        <span className="hidden xs:inline sm:inline">Next</span>
+        <ChevronRight className="h-4 w-4 sm:h-4 sm:w-4" />
       </Button>
     </nav>
   )

@@ -1,176 +1,371 @@
-// @system — Storage API routes
-// Exposes unified file storage operations backed by StorageAdapter (S3 / R2 / local).
-//
-// GET    /api/storage/health             — Health & config info for active adapter (admin only)
-// GET    /api/storage/health/all         — Health info for ALL adapters (admin only)
-// POST   /api/storage/upload-url         — Generate a presigned upload URL (authenticated)
-// POST   /api/storage/download-url       — Generate a presigned download URL (authenticated)
-// DELETE /api/storage/object             — Delete a stored object (authenticated)
-// POST   /api/storage/local-upload       — Receive a file for local filesystem storage (token-based)
+/**
+ * Storage API
+ * 
+ * Handles file uploads with:
+ * - Presigned URL generation for direct browser uploads
+ * - Storage quota enforcement
+ * - Image optimization and variant generation
+ * - File tracking and management
+ */
 
 'use strict'
 
 const express = require('express')
 const router = express.Router()
 
-const { authenticate, requireAdmin } = require('../../../lib/@system/Helpers/auth')
-const Storage = require('../../../lib/@system/StorageAdapter')
-const LocalAdapter = require('../../../lib/@system/StorageAdapter/LocalStorageAdapter')
-const { ValidationError } = require('../../../lib/@system/Errors')
+const StorageAdapter = require('../../../lib/@system/StorageAdapter')
+const StorageQuota = require('../../../lib/@system/StorageQuota')
+const ImageProcessor = require('../../../lib/@system/ImageProcessor')
+const { validateFileMiddleware } = require('../../../lib/@system/StorageAdapter/validators')
+const { authenticate } = require('../../../lib/@system/Middleware')
 const logger = require('../../../lib/@system/Logger')
-const { uploadLimiter } = require('../../../lib/@system/RateLimit')
 
-// ── GET /api/storage/health ───────────────────────────────────────────────────
-// Returns health and configuration of the currently active adapter.
-// Admin-only — contains bucket names, regions, credentials status.
-
-router.get('/storage/health', authenticate, requireAdmin, (req, res, next) => {
-  try {
-    res.json({ ok: true, ...Storage.health() })
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ── GET /api/storage/health/all ───────────────────────────────────────────────
-// Returns health info for every registered adapter (s3, r2, local).
-
-router.get('/storage/health/all', authenticate, requireAdmin, (req, res, next) => {
-  try {
-    res.json({ ok: true, adapters: Storage.healthAll() })
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ── POST /api/storage/upload-url ─────────────────────────────────────────────
-// Body: { filename, contentType, folder?, expiresIn? }
-// Returns: { url, key, publicUrl, expiresAt }
-//
-// For S3/R2: url is a presigned PUT URL — the client uploads directly to the storage provider.
-// For local: url points to POST /api/storage/local-upload with a short-lived token.
-
-router.post('/storage/upload-url', authenticate, uploadLimiter, async (req, res, next) => {
-  try {
-    const { filename, contentType, folder, expiresIn } = req.body
-
-    if (!filename || typeof filename !== 'string') {
-      throw new ValidationError('filename is required')
-    }
-    if (!contentType || typeof contentType !== 'string') {
-      throw new ValidationError('contentType is required')
-    }
-
-    const result = await Storage.createUploadUrl({
-      filename: filename.trim(),
-      contentType: contentType.trim(),
-      folder: folder ?? 'uploads',
-      expiresIn: expiresIn ?? 300,
-    })
-
-    logger.info({ key: result.key, provider: Storage.provider, userId: req.user?.id }, '[storage] upload URL issued')
-    res.status(201).json({ ok: true, ...result })
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ── POST /api/storage/download-url ───────────────────────────────────────────
-// Body: { key, expiresIn? }
-// Returns: { url, expiresAt }
-//
-// For S3/R2: returns a presigned GET URL.
-// For local: returns the public file URL (no expiry enforced by the adapter).
-
-router.post('/storage/download-url', authenticate, uploadLimiter, async (req, res, next) => {
-  try {
-    const { key, expiresIn } = req.body
-
-    if (!key || typeof key !== 'string') {
-      throw new ValidationError('key is required')
-    }
-
-    const result = await Storage.createDownloadUrl({
-      key: key.trim(),
-      expiresIn: expiresIn ?? 3600,
-    })
-
-    res.json({ ok: true, ...result })
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ── DELETE /api/storage/object ────────────────────────────────────────────────
-// Body: { key }
-// Deletes the object from the active storage backend.
-
-router.delete('/storage/object', authenticate, async (req, res, next) => {
-  try {
-    const { key } = req.body
-
-    if (!key || typeof key !== 'string') {
-      throw new ValidationError('key is required')
-    }
-
-    await Storage.delete(key.trim())
-
-    logger.info({ key, provider: Storage.provider, userId: req.user?.id }, '[storage] object deleted')
-    res.json({ ok: true, deleted: true })
-  } catch (err) {
-    next(err)
-  }
-})
-
-// ── POST /api/storage/local-upload ───────────────────────────────────────────
-// Handles file upload for the local filesystem adapter.
-// Expects multipart/form-data with a `file` field, OR raw body (application/octet-stream).
-// Also accepts an upload token issued by LocalStorageAdapter.createUploadUrl().
-//
-// Query params:
-//   token — base64url token containing { key, contentType, exp }
-//
-// This endpoint is intentionally unauthenticated via JWT — it uses the short-lived
-// upload token for authorisation instead (same pattern as presigned S3 URLs).
-
-router.post('/storage/local-upload', uploadLimiter, express.raw({ type: '*/*', limit: '50mb' }), async (req, res, next) => {
-  try {
-    const { token } = req.query
-
-    if (!token) {
-      return res.status(400).json({ ok: false, message: 'Missing upload token' })
-    }
-
-    // Decode and validate token
-    let tokenData
+/**
+ * GET /api/storage/status
+ * 
+ * Get user's storage usage and quota
+ */
+router.get('/status',
+  authenticate,
+  async (req, res, next) => {
     try {
-      tokenData = JSON.parse(Buffer.from(token, 'base64url').toString('utf8'))
-    } catch {
-      return res.status(400).json({ ok: false, message: 'Invalid upload token' })
+      const status = await StorageQuota.getStorageStatus(req.user.id)
+
+      res.json({
+        success: true,
+        storage: status,
+      })
+    } catch (err) {
+      next(err)
     }
-
-    const { key, exp } = tokenData
-    if (!key) {
-      return res.status(400).json({ ok: false, message: 'Malformed upload token' })
-    }
-    if (exp && Date.now() > exp) {
-      return res.status(400).json({ ok: false, message: 'Upload token has expired' })
-    }
-
-    const buffer = req.body
-    if (!buffer || buffer.length === 0) {
-      return res.status(400).json({ ok: false, message: 'No file data received' })
-    }
-
-    await LocalAdapter.write(key, buffer)
-
-    const publicUrl = LocalAdapter.getPublicUrl(key)
-    logger.info({ key, size: buffer.length }, '[storage:local] file uploaded via token')
-
-    res.status(201).json({ ok: true, key, publicUrl })
-  } catch (err) {
-    next(err)
   }
-})
+)
+
+/**
+ * POST /api/storage/upload-url
+ * 
+ * Request a presigned URL for direct browser-to-storage upload
+ * 
+ * Body: { filename, contentType, size, folder?, generateVariants? }
+ */
+router.post('/upload-url',
+  authenticate,
+  validateFileMiddleware({ allowedTypes: ['image', 'document', 'video'] }),
+  StorageQuota.quotaCheckMiddleware,
+  async (req, res, next) => {
+    try {
+      const { filename, contentType, size, folder = 'uploads', generateVariants = false } = req.body
+      const userId = req.user.id
+
+      // Generate unique key
+      const timestamp = Date.now()
+      const sanitized = filename.replace(/[^a-z0-9.-]/gi, '_')
+      const storageKey = `${folder}/${userId}/${timestamp}-${sanitized}`
+
+      // Get presigned upload URL
+      const uploadData = await StorageAdapter.createUploadUrl({
+        key: storageKey,
+        contentType,
+        expiresIn: 300, // 5 minutes
+      })
+
+      // Check if this is an image and variants are requested
+      const isImage = contentType.startsWith('image/')
+      const shouldProcessImage = isImage && (generateVariants || ImageProcessor.isSharpAvailable())
+
+      // Prepare response
+      const response = {
+        success: true,
+        uploadUrl: uploadData.url,
+        fields: uploadData.fields,
+        key: storageKey,
+        expiresAt: uploadData.expiresAt,
+        isImage,
+        shouldProcessImage,
+        storageStatus: req.storageStatus, // From quota check middleware
+      }
+
+      // Log for audit
+      await req.auditLog('storage.upload_requested', 'file', storageKey, {
+        filename,
+        contentType,
+        size,
+        folder,
+      })
+
+      res.json(response)
+    } catch (err) {
+      next(err)
+    }
+  }
+)
+
+/**
+ * POST /api/storage/confirm
+ * 
+ * Confirm successful upload and track in database
+ * 
+ * Body: { key, originalFilename, contentType, size, metadata? }
+ */
+router.post('/confirm',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const { key, originalFilename, contentType, size, metadata = {} } = req.body
+
+      // Verify file exists in storage
+      const exists = await StorageAdapter.exists(key)
+      if (!exists.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'File not found in storage',
+        })
+      }
+
+      // Track upload in database
+      const file = await StorageQuota.trackUpload({
+        userId: req.user.id,
+        storageKey: key,
+        originalFilename,
+        contentType,
+        sizeBytes: size,
+        folder: key.split('/')[0],
+        metadata,
+      })
+
+      // Get updated storage status
+      const status = await StorageQuota.getStorageStatus(req.user.id)
+
+      // Log for audit
+      await req.auditLog('storage.upload_confirmed', 'file', key, {
+        originalFilename,
+        size,
+      })
+
+      res.json({
+        success: true,
+        file: {
+          id: file.id,
+          key: file.storage_key,
+          filename: file.original_filename,
+          contentType: file.content_type,
+          size: file.size_bytes,
+          createdAt: file.created_at,
+          url: StorageAdapter.getPublicUrl(key),
+        },
+        storage: status,
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
+)
+
+/**
+ * GET /api/storage/files
+ * 
+ * List user's uploaded files
+ * 
+ * Query: ?limit=50&offset=0&folder=uploads&contentType=image%
+ */
+router.get('/files',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const {
+        limit = 50,
+        offset = 0,
+        folder,
+        contentType,
+      } = req.query
+
+      const files = await StorageQuota.getUserFiles(req.user.id, {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        folder,
+        contentType,
+      })
+
+      // Add public URLs
+      const filesWithUrls = files.map(file => ({
+        ...file,
+        url: StorageAdapter.getPublicUrl(file.storage_key),
+      }))
+
+      res.json({
+        success: true,
+        files: filesWithUrls,
+        count: files.length,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
+)
+
+/**
+ * DELETE /api/storage/files/:key
+ * 
+ * Delete a file
+ * 
+ * Params: key - Storage key (URL-encoded)
+ */
+router.delete('/files/:key(*)',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const key = decodeURIComponent(req.params.key)
+
+      // Delete file (soft delete in DB, hard delete in storage)
+      const deleted = await StorageQuota.deleteFile(key, req.user.id, true)
+
+      // Get updated storage status
+      const status = await StorageQuota.getStorageStatus(req.user.id)
+
+      // Log for audit
+      await req.auditLog('storage.file_deleted', 'file', key, {
+        filename: deleted.original_filename,
+        size: deleted.size_bytes,
+      })
+
+      res.json({
+        success: true,
+        message: 'File deleted successfully',
+        storage: status,
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
+)
+
+/**
+ * POST /api/storage/process-image
+ * 
+ * Process an already-uploaded image (generate variants, optimize, etc.)
+ * 
+ * Body: { key, sizes: ['thumbnail', 'small', 'medium'], format: 'webp' }
+ */
+router.post('/process-image',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      if (!ImageProcessor.isSharpAvailable()) {
+        return res.status(503).json({
+          success: false,
+          error: 'Image processing not available (Sharp not installed)',
+        })
+      }
+
+      const { key, sizes = ['thumbnail', 'small', 'medium'], format = 'webp' } = req.body
+
+      // Verify file belongs to user
+      const files = await StorageQuota.getUserFiles(req.user.id, {
+        limit: 1,
+        offset: 0,
+      })
+
+      const file = files.find(f => f.storage_key === key)
+      if (!file) {
+        return res.status(404).json({
+          success: false,
+          error: 'File not found or access denied',
+        })
+      }
+
+      // Check if image
+      if (!file.content_type.startsWith('image/')) {
+        return res.status(400).json({
+          success: false,
+          error: 'File is not an image',
+        })
+      }
+
+      // Download original image
+      const downloadUrl = await StorageAdapter.createDownloadUrl({ key })
+      const response = await fetch(downloadUrl.url)
+      const buffer = Buffer.from(await response.arrayBuffer())
+
+      // Process image
+      const processed = await ImageProcessor.processUpload(buffer, {
+        generateVariants: true,
+        sizes,
+        format,
+      })
+
+      // Upload variants
+      const variantKeys = {}
+      for (const [sizeName, variantBuffer] of Object.entries(processed)) {
+        if (sizeName === 'original') continue
+
+        const variantKey = key.replace(/\.[^.]+$/, `-${sizeName}.${format}`)
+        const uploadData = await StorageAdapter.createUploadUrl({
+          key: variantKey,
+          contentType: `image/${format}`,
+        })
+
+        // Upload variant
+        await fetch(uploadData.url, {
+          method: 'PUT',
+          body: variantBuffer,
+          headers: {
+            'Content-Type': `image/${format}`,
+          },
+        })
+
+        variantKeys[sizeName] = variantKey
+      }
+
+      // Log for audit
+      await req.auditLog('storage.image_processed', 'file', key, {
+        sizes,
+        format,
+        variants: Object.keys(variantKeys).length,
+      })
+
+      res.json({
+        success: true,
+        original: key,
+        variants: variantKeys,
+        variantUrls: Object.fromEntries(
+          Object.entries(variantKeys).map(([size, k]) => [size, StorageAdapter.getPublicUrl(k)])
+        ),
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
+)
+
+/**
+ * GET /api/storage/stats (Admin only)
+ * 
+ * Get system-wide storage statistics
+ */
+router.get('/stats',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      // TODO: Add admin check middleware
+      if (!req.user.isAdmin && !req.user.role?.includes('admin')) {
+        return res.status(403).json({
+          success: false,
+          error: 'Admin access required',
+        })
+      }
+
+      const stats = await StorageQuota.getSystemStats()
+
+      res.json({
+        success: true,
+        stats,
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
+)
 
 module.exports = router

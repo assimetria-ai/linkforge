@@ -1,7 +1,7 @@
 // @system — data table primitives with mobile-responsive padding and overflow
 import { cn } from '@/app/lib/@system/utils'
 
-function Table({ className = '', ...props }) {
+function Table({ className, ...props }) {
   return (
     <div className="mobile-table-wrapper">
       <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
@@ -9,15 +9,15 @@ function Table({ className = '', ...props }) {
   )
 }
 
-function TableHeader({ className = '', ...props }) {
+function TableHeader({ className, ...props }) {
   return <thead className={cn('[&_tr]:border-b', className)} {...props} />
 }
 
-function TableBody({ className = '', ...props }) {
+function TableBody({ className, ...props }) {
   return <tbody className={cn('[&_tr:last-child]:border-0', className)} {...props} />
 }
 
-function TableFooter({ className = '', ...props }) {
+function TableFooter({ className, ...props }) {
   return (
     <tfoot
       className={cn('border-t bg-muted/50 font-medium [&>tr]:last:border-b-0', className)}
@@ -26,7 +26,7 @@ function TableFooter({ className = '', ...props }) {
   )
 }
 
-function TableRow({ className = '', ...props }) {
+function TableRow({ className, ...props }) {
   return (
     <tr
       className={cn(
@@ -40,7 +40,7 @@ function TableRow({ className = '', ...props }) {
   )
 }
 
-function TableHead({ className = '', ...props }) {
+function TableHead({ className, ...props }) {
   return (
     <th
       className={cn(
@@ -56,7 +56,7 @@ function TableHead({ className = '', ...props }) {
   )
 }
 
-function TableCell({ className = '', ...props }) {
+function TableCell({ className, ...props }) {
   return (
     <td
       className={cn(
@@ -72,7 +72,7 @@ function TableCell({ className = '', ...props }) {
   )
 }
 
-function TableCaption({ className = '', ...props }) {
+function TableCaption({ className, ...props }) {
   return (
     <caption className={cn('mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground', className)} {...props} />
   )

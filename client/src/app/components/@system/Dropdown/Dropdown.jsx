@@ -65,7 +65,7 @@ export function Dropdown({
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 mt-2 min-w-[12rem] rounded-lg border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95',
+            'absolute z-50 mt-2 min-w-[12rem] sm:min-w-[12rem] rounded-lg border bg-popover p-1 sm:p-1 shadow-lg animate-in fade-in-0 zoom-in-95',
             align === 'right' ? 'right-0' : 'left-0'
           )}
           role="menu"
@@ -108,8 +108,8 @@ export function DropdownItem({
   return (
     <button
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors',
-        'hover:bg-accent focus:bg-accent focus:outline-none',
+        'w-full flex items-center gap-2 sm:gap-2 px-3 sm:px-3 py-2.5 sm:py-2 text-sm sm:text-sm rounded-md transition-colors touch-target',
+        'hover:bg-accent active:bg-accent/70 focus:bg-accent focus:outline-none',
         variant === 'danger' && 'text-destructive hover:bg-destructive/10 focus:bg-destructive/10',
         disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
         className
@@ -118,11 +118,11 @@ export function DropdownItem({
       disabled={disabled}
       role="menuitem"
     >
-      {checked && <Check className="h-4 w-4 shrink-0" />}
+      {checked && <Check className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />}
       {icon && <span className="shrink-0">{icon}</span>}
       <span className="flex-1 text-left">{children}</span>
       {shortcut && (
-        <span className="text-xs text-muted-foreground">{shortcut}</span>
+        <span className="text-xs sm:text-xs text-muted-foreground">{shortcut}</span>
       )}
     </button>
   )
@@ -143,7 +143,7 @@ export function DropdownSeparator({ className }) {
  */
 export function DropdownLabel({ children, className }) {
   return (
-    <div className={cn('px-3 py-2 text-xs font-semibold text-muted-foreground', className)}>
+    <div className={cn('px-3 sm:px-3 py-2 sm:py-2 text-xs sm:text-xs font-semibold text-muted-foreground', className)}>
       {children}
     </div>
   )
@@ -166,16 +166,16 @@ export function DropdownSubmenu({ label, icon, children }) {
       onMouseLeave={() => setIsOpen(false)}
     >
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+        className="w-full flex items-center gap-2 sm:gap-2 px-3 sm:px-3 py-2.5 sm:py-2 text-sm sm:text-sm rounded-md hover:bg-accent active:bg-accent/70 transition-colors touch-target"
         onClick={() => setIsOpen(!isOpen)}
       >
         {icon && <span className="shrink-0">{icon}</span>}
         <span className="flex-1 text-left">{label}</span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <ChevronRight className="h-4 w-4 sm:h-4 sm:w-4 text-muted-foreground" />
       </button>
 
       {isOpen && (
-        <div className="absolute left-full top-0 ml-1 min-w-[12rem] rounded-lg border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95">
+        <div className="absolute left-full top-0 ml-1 min-w-[12rem] sm:min-w-[12rem] rounded-lg border bg-popover p-1 sm:p-1 shadow-lg animate-in fade-in-0 zoom-in-95">
           {children}
         </div>
       )}

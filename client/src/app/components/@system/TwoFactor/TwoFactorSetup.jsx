@@ -147,22 +147,28 @@ export function TwoFactorSetup({ enabled, onStatusChange }) {
           <img
             src={setupData.qrCodeDataUrl}
             alt="TOTP QR Code"
-            className="h-48 w-48 rounded-md border"
+            className="h-48 w-48 sm:h-56 sm:w-56 md:h-64 md:w-64 rounded-md border"
             loading="lazy"
           />
         </div>
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Can't scan? Enter this key manually:</p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-muted px-2 py-1 text-xs font-mono break-all">
+          <p className="text-xs sm:text-sm text-muted-foreground">Can't scan? Enter this key manually:</p>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <code className="flex-1 rounded bg-muted px-2 py-1.5 sm:py-1 text-xs font-mono break-all min-h-touch sm:min-h-0">
               {setupData.secret}
             </code>
-            <Button size="sm" variant="outline" onClick={copySecret} className="shrink-0">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={copySecret} 
+              className="shrink-0 w-full sm:w-auto min-h-touch sm:min-h-0"
+            >
               {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              <span className="ml-2 sm:hidden">{copied ? 'Copied!' : 'Copy Key'}</span>
             </Button>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setStep('verify')}>
+        <Button variant="outline" onClick={() => setStep('verify')} className="w-full sm:w-auto">
           I've scanned the code →
         </Button>
       </div>
@@ -186,12 +192,12 @@ export function TwoFactorSetup({ enabled, onStatusChange }) {
           />
         </FormField>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <div className="flex gap-2">
-          <Button onClick={confirmEnable} disabled={loading} className="gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+          <Button onClick={confirmEnable} disabled={loading} className="gap-2 w-full sm:w-auto">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {loading ? 'Verifying…' : 'Enable 2FA'}
           </Button>
-          <Button variant="outline" onClick={() => setStep('setup')}>
+          <Button variant="outline" onClick={() => setStep('setup')} className="w-full sm:w-auto">
             Back
           </Button>
         </div>
