@@ -30,6 +30,18 @@ module.exports = {
       );
     `)
 
+    // Add folder column if table existed without it (idempotent)
+    await db.none(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'file_uploads' AND column_name = 'folder'
+        ) THEN
+          ALTER TABLE file_uploads ADD COLUMN folder VARCHAR(200) DEFAULT 'uploads';
+        END IF;
+      END $$;
+    `)
+
     // Indexes for performance
     await db.none(`
       CREATE INDEX IF NOT EXISTS idx_file_uploads_user_id ON file_uploads(user_id) WHERE deleted_at IS NULL;
