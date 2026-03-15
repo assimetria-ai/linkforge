@@ -98,7 +98,17 @@ if (process.env.NODE_ENV === 'production') {
     next()
   })
 
-  app.use(express.static(publicDir, { index: false, maxAge: '1y', immutable: true }))
+  app.use(express.static(publicDir, {
+    index: false,
+    maxAge: '1y',
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      // HTML files must NOT be cached long-term — only fingerprinted assets (js/css with hash)
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+      }
+    }
+  }))
 }
 
 // Link shortening redirects (must be before SPA fallback)
@@ -110,6 +120,7 @@ if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
   const landingFile = path.join(publicDir, 'landing.html')
   if (fs.existsSync(landingFile)) {
     app.get('/', (_req, res) => {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
       res.sendFile(landingFile)
     })
   }
@@ -120,6 +131,7 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
     const indexPath = path.join(publicDir, 'index.html')
     if (fs.existsSync(indexPath)) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
       res.sendFile(indexPath)
     } else {
       res.status(404).json({ error: 'Not found' })
