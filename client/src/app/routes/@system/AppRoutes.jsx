@@ -8,7 +8,7 @@ import { ProtectedRoute } from '../../components/@system/ProtectedRoute/Protecte
 
 // Static / marketing pages (no auth required)
 const LandingPage = lazy(() =>
-  import('../../pages/static/@system/LandingPage').then((m) => ({ default: m.LandingPage }))
+  import('../../pages/static/@custom/LandingPage').then((m) => ({ default: m.LandingPage }))
 )
 const NotFoundPage = lazy(() =>
   import('../../pages/static/@system/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
