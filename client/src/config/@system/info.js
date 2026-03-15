@@ -1,6 +1,6 @@
 // @system — product identity config
 export const info = {
-  name: 'ProductTemplate',
-  tagline: 'Your product tagline here',
-  url: import.meta.env.VITE_APP_URL ?? 'http://localhost:5173',
-  supportEmail: 'support@example.com' }
+  name: 'Taplio Alt',
+  tagline: 'Schedule smarter, grow your audience',
+  url: import.meta.env.VITE_APP_URL ?? 'https://taplio-web-production.up.railway.app',
+  supportEmail: 'support@taplioalt.com' }

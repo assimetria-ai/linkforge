@@ -83,39 +83,37 @@ export function AnnouncementBanner({
 
   return (
     <div className={cn('relative w-full', v.bg, v.text, className)}>
-      <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-2.5">
-        <Icon className="h-4 w-4 sm:h-4 sm:w-4 shrink-0 opacity-80" />
+      <div className="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4 py-2.5 sm:px-6">
+        <Icon className="h-4 w-4 shrink-0 opacity-80" />
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-center sm:text-left">
-            {message}
-          </p>
+        <p className="text-sm font-medium text-center">
+          {message}
+        </p>
 
-          {action && (
-            action.href ? (
-              <a
-                href={action.href}
-                className="inline-flex items-center justify-center gap-1 rounded-full bg-white/20 px-3 py-1.5 sm:py-1 text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors shrink-0 touch-target"
-              >
-                {action.label}
-                <ArrowRight className="h-3 w-3" />
-              </a>
-            ) : (
-              <button
-                onClick={action.onClick}
-                className="inline-flex items-center justify-center gap-1 rounded-full bg-white/20 px-3 py-1.5 sm:py-1 text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors shrink-0 touch-target"
-              >
-                {action.label}
-                <ArrowRight className="h-3 w-3" />
-              </button>
-            )
-          )}
-        </div>
+        {action && (
+          action.href ? (
+            <a
+              href={action.href}
+              className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors shrink-0"
+            >
+              {action.label}
+              <ArrowRight className="h-3 w-3" />
+            </a>
+          ) : (
+            <button
+              onClick={action.onClick}
+              className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors shrink-0"
+            >
+              {action.label}
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          )
+        )}
 
         {dismissible && (
           <button
             onClick={handleDismiss}
-            className="shrink-0 rounded-full p-1.5 sm:p-1 opacity-70 hover:opacity-100 transition-opacity touch-target"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 opacity-70 hover:opacity-100 transition-opacity"
             aria-label="Dismiss announcement"
           >
             <X className="h-4 w-4" />

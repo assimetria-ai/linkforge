@@ -7,6 +7,7 @@ const { authenticate, requireAdmin } = require('../Helpers/auth')
 
 module.exports = {
   cors: require('./cors'),
+  csrf: require('./csrf'),
   securityHeaders: require('./security'),
   validate: require('../Validation').validate,
   

@@ -44,17 +44,17 @@ export function MetricCard({
     up: {
       icon: TrendingUp,
       color: 'text-green-600',
-      bg: 'bg-green-50 dark:bg-green-950',
+      bg: 'bg-green-50',
     },
     down: {
       icon: TrendingDown,
       color: 'text-red-600',
-      bg: 'bg-red-50 dark:bg-red-950',
+      bg: 'bg-red-50',
     },
     neutral: {
       icon: Minus,
       color: 'text-gray-600',
-      bg: 'bg-gray-50 dark:bg-gray-950',
+      bg: 'bg-gray-50',
     },
   }
 
@@ -63,35 +63,35 @@ export function MetricCard({
 
   if (loading) {
     return (
-      <Card className={cn('p-4 sm:p-6', className)}>
+      <Card className={cn('p-6', className)}>
         <div className="animate-pulse space-y-3">
-          <div className="h-3 sm:h-4 bg-muted rounded w-1/2" />
-          <div className="h-6 sm:h-8 bg-muted rounded w-3/4" />
-          <div className="h-2 sm:h-3 bg-muted rounded w-1/3" />
+          <div className="h-4 bg-muted rounded w-1/2" />
+          <div className="h-8 bg-muted rounded w-3/4" />
+          <div className="h-3 bg-muted rounded w-1/3" />
         </div>
       </Card>
     )
   }
 
   return (
-    <Card className={cn('p-4 sm:p-6', className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+    <Card className={cn('p-6', className)}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
           {/* Title */}
-          <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1 sm:mb-2 truncate">
+          <p className="text-sm font-medium text-muted-foreground mb-2">
             {title}
           </p>
 
           {/* Value */}
-          <p className="text-2xl sm:text-3xl font-bold tracking-tight mb-1 break-words">
+          <p className="text-3xl font-bold tracking-tight mb-1">
             {value}
           </p>
 
           {/* Change indicator */}
           {change !== undefined && (
-            <div className="flex items-center gap-1 text-xs sm:text-sm flex-wrap">
+            <div className="flex items-center gap-1 text-sm">
               <span className={cn('flex items-center gap-1 font-medium', config.color)}>
-                <TrendIcon className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                <TrendIcon className="h-4 w-4" />
                 {Math.abs(change)}%
               </span>
               <span className="text-muted-foreground">{period}</span>
@@ -100,7 +100,7 @@ export function MetricCard({
 
           {/* Description */}
           {description && (
-            <p className="text-xs text-muted-foreground mt-1 sm:mt-2 line-clamp-2">
+            <p className="text-xs text-muted-foreground mt-2">
               {description}
             </p>
           )}
@@ -108,8 +108,8 @@ export function MetricCard({
 
         {/* Icon */}
         {icon && (
-          <div className={cn('p-2 sm:p-3 rounded-full shrink-0', config.bg)}>
-            <div className={cn(config.color, 'w-4 h-4 sm:w-5 sm:h-5')}>
+          <div className={cn('p-3 rounded-full', config.bg)}>
+            <div className={config.color}>
               {icon}
             </div>
           </div>

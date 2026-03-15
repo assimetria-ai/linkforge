@@ -110,13 +110,13 @@ export function HelpWidget({
       <Button
         onClick={() => setIsOpen(!isOpen)}
         size="default"
-        className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl transition-all touch-target"
+        className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all"
         aria-label="Help"
       >
         {isOpen ? (
-          <X className="h-5 w-5 sm:h-6 sm:w-6" />
+          <X className="h-5 w-5" />
         ) : (
-          <HelpCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+          <HelpCircle className="h-5 w-5" />
         )}
       </Button>
 
@@ -125,76 +125,74 @@ export function HelpWidget({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/20 sm:bg-black/20 backdrop-blur-sm -z-10"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm -z-10"
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Panel - Full screen on mobile, floating on desktop */}
+          {/* Panel */}
           <div
             className={cn(
-              'fixed sm:absolute',
-              'inset-0 sm:inset-auto',
-              'sm:w-96 bg-background border-0 sm:border sm:rounded-lg shadow-xl',
-              'max-h-screen sm:max-h-[600px] flex flex-col overflow-hidden',
-              'sm:' + panelPositionClasses[position].replace('absolute ', '')
+              'absolute w-80 sm:w-96 bg-background border rounded-lg shadow-xl',
+              'max-h-[600px] flex flex-col overflow-hidden',
+              panelPositionClasses[position]
             )}
           >
             {/* Header */}
-            <div className="p-4 sm:p-4 border-b">
-              <div className="flex items-center justify-between mb-3 sm:mb-3">
-                <h3 className="font-semibold text-base sm:text-lg">Help & Support</h3>
+            <div className="p-4 border-b">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-base">Help & Support</h3>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="h-10 w-10 sm:h-8 sm:w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors touch-target"
+                  className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
                 >
-                  <X className="h-5 w-5 sm:h-4 sm:w-4" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search help articles..."
-                  className="pl-9 h-11 sm:h-10"
+                  className="pl-9"
                 />
               </div>
             </div>
 
             {/* Articles list */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-4">
+            <div className="flex-1 overflow-y-auto p-4">
               {filteredArticles.length > 0 ? (
                 <div className="space-y-2">
                   {filteredArticles.map((article) => (
                     <a
                       key={article.id}
                       href={article.url}
-                      className="block p-3 sm:p-3 rounded-lg hover:bg-accent active:bg-accent/70 transition-colors group touch-target"
+                      className="block p-3 rounded-lg hover:bg-accent transition-colors group"
                     >
-                      <div className="flex items-start justify-between gap-2 sm:gap-2">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm sm:text-sm font-medium group-hover:text-primary transition-colors">
+                          <p className="text-sm font-medium group-hover:text-primary transition-colors">
                             {article.title}
                           </p>
-                          <p className="text-xs sm:text-xs text-muted-foreground mt-1 sm:mt-0.5 line-clamp-2">
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                             {article.description}
                           </p>
-                          <span className="inline-block text-xs text-muted-foreground mt-1.5 sm:mt-1">
+                          <span className="inline-block text-xs text-muted-foreground mt-1">
                             {article.category}
                           </span>
                         </div>
-                        <ExternalLink className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
                       </div>
                     </a>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 sm:py-12">
-                  <Book className="h-10 w-10 sm:h-8 sm:w-8 text-muted-foreground/50 mx-auto mb-2 sm:mb-2" />
-                  <p className="text-sm sm:text-sm text-muted-foreground">No articles found</p>
-                  <p className="text-xs sm:text-xs text-muted-foreground mt-1">
+                <div className="text-center py-12">
+                  <Book className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No articles found</p>
+                  <p className="text-xs text-muted-foreground mt-1">
                     Try a different search term
                   </p>
                 </div>
@@ -202,26 +200,26 @@ export function HelpWidget({
             </div>
 
             {/* Footer actions */}
-            <div className="p-4 sm:p-4 border-t space-y-2">
+            <div className="p-4 border-t space-y-2">
               <a
                 href="/docs"
-                className="flex items-center gap-2 sm:gap-2 px-3 py-3 sm:py-2 text-sm sm:text-sm rounded-md hover:bg-accent active:bg-accent/70 transition-colors touch-target"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
               >
-                <Book className="h-5 w-5 sm:h-4 sm:w-4" />
+                <Book className="h-4 w-4" />
                 Browse all docs
               </a>
               <a
                 href="/contact"
-                className="flex items-center gap-2 sm:gap-2 px-3 py-3 sm:py-2 text-sm sm:text-sm rounded-md hover:bg-accent active:bg-accent/70 transition-colors touch-target"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
               >
-                <MessageCircle className="h-5 w-5 sm:h-4 sm:w-4" />
+                <MessageCircle className="h-4 w-4" />
                 Contact support
               </a>
               <a
                 href={`mailto:${info.supportEmail}`}
-                className="flex items-center gap-2 sm:gap-2 px-3 py-3 sm:py-2 text-sm sm:text-sm rounded-md hover:bg-accent active:bg-accent/70 transition-colors touch-target"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
               >
-                <Mail className="h-5 w-5 sm:h-4 sm:w-4" />
+                <Mail className="h-4 w-4" />
                 Email us
               </a>
             </div>

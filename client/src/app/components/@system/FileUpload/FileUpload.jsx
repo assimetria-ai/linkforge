@@ -155,31 +155,28 @@ export function FileUpload({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         className={cn(
-          // Mobile-first: better padding and spacing for touch
-          'relative flex flex-col items-center justify-center gap-3 sm:gap-3 rounded-lg border-2 border-dashed px-4 py-12 sm:px-6 sm:py-10 text-center transition-colors',
+          'relative flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors',
           'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          'min-h-touch', // Ensure touch-friendly height
           isDragging
             ? 'border-primary bg-primary/5'
-            : 'border-border bg-background hover:border-primary/60 hover:bg-accent/40 active:bg-accent/50',
+            : 'border-border bg-background hover:border-primary/60 hover:bg-accent/40',
           disabled && 'pointer-events-none opacity-50',
         )}
       >
         <div
           className={cn(
-            // Larger icon on mobile for better visibility
-            'flex h-14 w-14 sm:h-12 sm:w-12 items-center justify-center rounded-full transition-colors',
+            'flex h-12 w-12 items-center justify-center rounded-full transition-colors',
             isDragging ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
           )}
         >
-          <Upload className="h-6 w-6 sm:h-5 sm:w-5" />
+          <Upload className="h-5 w-5" />
         </div>
 
-        <div className="flex flex-col gap-1 sm:gap-1">
-          <p className="text-sm sm:text-sm font-medium">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium">
             {isDragging ? 'Drop files here' : 'Drag & drop files here'}
           </p>
-          <p className="text-xs sm:text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             or{' '}
             <span className="font-medium text-primary underline-offset-2 hover:underline">
               browse
@@ -187,7 +184,7 @@ export function FileUpload({
             to choose files
           </p>
           {(accept || maxSize) && (
-            <p className="mt-1 text-xs sm:text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               {accept && <span>Accepted · </span>}
               Max {formatBytes(maxSize)}
               {multiple ? ' per file' : ''}
@@ -221,18 +218,15 @@ export function FileUpload({
           {files.map((entry) => (
             <li
               key={entry.id}
-              // Mobile-first: better padding and spacing
-              className="flex items-center gap-3 sm:gap-3 rounded-md border bg-background px-3 py-3 sm:py-2 text-sm"
+              className="flex items-center gap-3 rounded-md border bg-background px-3 py-2 text-sm"
             >
-              {/* Icon - larger on mobile */}
-              <span className="shrink-0 flex items-center justify-center">
-                <span className="scale-125 sm:scale-100">{getFileIcon(entry.file)}</span>
-              </span>
+              {/* Icon */}
+              <span className="shrink-0">{getFileIcon(entry.file)}</span>
 
               {/* Name + meta */}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium leading-none text-sm sm:text-sm">{entry.file.name}</p>
-                <p className="mt-0.5 text-xs sm:text-xs text-muted-foreground">
+                <p className="truncate font-medium leading-none">{entry.file.name}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {formatBytes(entry.file.size)}
                 </p>
                 {/* Progress bar */}
@@ -263,19 +257,16 @@ export function FileUpload({
                 )}
               </span>
 
-              {/* Remove button - touch-friendly sizing */}
+              {/* Remove button */}
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className={cn(
-                  'h-10 w-10 sm:h-8 sm:w-8 shrink-0 text-muted-foreground hover:text-destructive active:text-destructive',
-                  'touch-target', // WCAG 2.5.5 compliant touch target
-                )}
+                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={() => handleRemove(entry.id)}
                 aria-label={`Remove ${entry.file.name}`}
               >
-                <X className="h-5 w-5 sm:h-4 sm:w-4" />
+                <X className="h-3.5 w-3.5" />
               </Button>
             </li>
           ))}

@@ -8,7 +8,7 @@ import { useAuthContext } from '@/app/store/@system/auth'
 import { info } from '@/config/@system/info'
 import { cn } from '@/app/lib/@system/utils'
 
-export function Header({ className }) {
+export function Header({ className = '' }) {
   const { user, isAuthenticated, logout } = useAuthContext()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
