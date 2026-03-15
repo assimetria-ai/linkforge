@@ -1,6 +1,7 @@
 node_modules/
-dist/
 build/
+# Keep client/dist tracked (pre-built for Railway deploy)
+!client/dist/
 
 # Environment files — never commit real secrets
 .env
