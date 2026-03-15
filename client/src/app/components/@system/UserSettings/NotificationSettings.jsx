@@ -149,8 +149,8 @@ export function NotificationSettings({ user, onUpdate }) {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {preferences.pushEnabled
-                    ? 'You'll receive push notifications for selected events'
-                    : 'Enable push notifications to stay updated on the go'}
+                    ? "You'll receive push notifications for selected events"
+                    : "Enable push notifications to stay updated on the go"}
                 </p>
                 <Button
                   variant="ghost"

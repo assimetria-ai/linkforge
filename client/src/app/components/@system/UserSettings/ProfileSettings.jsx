@@ -181,38 +181,4 @@ export function ProfileSettings({ user, onUpdate }) {
   )
 }
 
-// Simple Avatar component (if not exists in @system)
-function Avatar({ src, alt, size = 'md', fallback, className }) {
-  const sizes = {
-    sm: 'h-8 w-8 text-xs',
-    md: 'h-10 w-10 text-sm',
-    lg: 'h-16 w-16 text-lg',
-  }
-
-  if (!src) {
-    return (
-      <div
-        className={cn(
-          'flex items-center justify-center rounded-full bg-primary/10 text-primary font-medium',
-          sizes[size],
-          className
-        )}
-      >
-        {fallback || <UserIcon className="h-1/2 w-1/2" />}
-      </div>
-    )
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={cn(
-        'rounded-full object-cover',
-        sizes[size],
-        className
-      )}
-      loading="lazy"
-    />
-  )
-}
+// Avatar component imported from @system above
