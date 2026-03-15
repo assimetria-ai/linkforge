@@ -13,7 +13,7 @@ function isOriginAllowed(origin) {
   // always sends an Origin header on cross-origin requests, so absence of Origin means
   // CORS enforcement doesn't apply. Allow these in all environments.
   // Production healthchecks still use /healthz (registered before CORS middleware).
-  if (!origin) return true
+  if (!origin || origin === 'undefined') return true
 
   // Exact match only — wildcard subdomain matching removed (SEC-1500: attacker-registered subdomain risk)
   if (ALLOWED_ORIGINS.includes(origin)) return true
