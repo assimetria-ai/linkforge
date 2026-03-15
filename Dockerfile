@@ -39,6 +39,8 @@ COPY client/dist ./server/public
 COPY client/public/favicon* ./server/public/
 # Landing page — served as public homepage for unauthenticated visitors at /
 COPY server/landing.html ./server/public/landing.html
+# Logo files for landing page
+COPY client/public/logo*.png ./server/public/
 
 RUN chown -R appuser:appgroup /app
 USER appuser
