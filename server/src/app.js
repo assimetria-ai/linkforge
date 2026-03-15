@@ -33,8 +33,60 @@ app.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok' }))
 app.get('/healthz', (_req, res) => res.status(200).json({ status: 'ok' }))
 
 app.use(securityHeaders)
-app.use(cors)
 app.use(compression())
+
+// ── Static assets BEFORE CORS ───────────────────────────────────────────────
+// Browser navigation (typing URL, clicking links) sends no Origin header.
+// CORS middleware rejects no-origin requests in production, so static files
+// (HTML, JS, CSS, images) must be served before CORS is applied.
+// CORS is only needed for cross-origin API requests (fetch/XHR).
+const publicDir = process.env.STATIC_DIR || path.join(__dirname, '..', 'public')
+if (process.env.NODE_ENV === 'production') {
+  const indexExists = fs.existsSync(path.join(publicDir, 'index.html'))
+  const staticJsDir = path.join(publicDir, 'static', 'js')
+  const staticJsExists = fs.existsSync(staticJsDir)
+  logger.info({ publicDir, indexExists, staticJsExists }, 'static asset directory status')
+
+  // Landing page at root
+  const landingFile = path.join(publicDir, 'landing.html')
+  if (fs.existsSync(landingFile)) {
+    app.get('/', (_req, res) => {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+      res.sendFile(landingFile)
+    })
+  }
+
+  // Resolve unhashed static JS requests to content-hashed equivalents
+  app.use('/static/js', (req, res, next) => {
+    const basename = path.basename(req.path, '.js')
+    if (!basename || basename.includes('.')) return next()
+    const jsDir = path.join(publicDir, 'static', 'js')
+    try {
+      const files = fs.readdirSync(jsDir)
+      const pattern = new RegExp(`^${basename}([.-][a-f0-9]{8}){1,2}\\.js$`)
+      const match = files.find(f => pattern.test(f))
+      if (match) return res.sendFile(path.join(jsDir, match))
+    } catch (_) { /* fall through */ }
+    next()
+  })
+
+  app.use(express.static(publicDir, {
+    index: false,
+    maxAge: '1y',
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+      }
+    }
+  }))
+}
+
+// ── CORS + body parsing (API routes) ────────────────────────────────────────
+// CORS is scoped to /api only. Browser navigation (typing URL, clicking links)
+// sends no Origin header and must reach the SPA fallback without CORS rejection.
+// Static assets are already served above; only fetch/XHR API calls need CORS.
+app.use('/api', cors)
 app.use(express.json({ limit: '10mb' }))
 app.use(cookieParser())
 
@@ -57,74 +109,9 @@ app.use('/api', attachDatabase)
 app.use('/api', systemRoutes)
 app.use('/api', customRoutes)
 
-// Serve static assets in production (before link redirects so /static/* is served directly)
-// Always register the middleware when NODE_ENV=production — express.static gracefully
-// handles missing directories by passing through to next middleware. The previous
-// fs.existsSync guard at module-load time was fragile (race with Docker COPY, etc.).
-const publicDir = process.env.STATIC_DIR || path.join(__dirname, '..', 'public')
-if (process.env.NODE_ENV === 'production') {
-  // Log static asset directory status at startup for debugging deploy issues
-  const indexExists = fs.existsSync(path.join(publicDir, 'index.html'))
-  const staticJsDir = path.join(publicDir, 'static', 'js')
-  const staticJsExists = fs.existsSync(staticJsDir)
-  logger.info({ publicDir, indexExists, staticJsExists }, 'static asset directory status')
-
-  // Resolve unhashed static asset requests to their content-hashed equivalents.
-  // Webpack produces files like main.a1b2c3d4.js but health checks and external
-  // monitors may request /static/js/main.js.  This middleware finds the real file
-  // by glob-matching and serves it, so those requests return 200 instead of 404.
-  //
-  // With webpack maxSize code-splitting, entry chunks can also be named
-  // main-<chunkHash>.<contentHash>.js (e.g. main-4f064d56.8d0459ac.js).
-  // The middleware handles both patterns.
-  app.use('/static/js', (req, res, next) => {
-    // Only intercept requests for unhashed .js files (no dot-separated hash segment)
-    const basename = path.basename(req.path, '.js')
-    if (!basename || basename.includes('.')) return next()
-
-    const jsDir = path.join(publicDir, 'static', 'js')
-    try {
-      const files = fs.readdirSync(jsDir)
-      // Pattern 1: <name>.<hash>.js (standard webpack contenthash:8)
-      // Pattern 2: <name>-<chunkHash>.<contentHash>.js (webpack maxSize splitting)
-      const pattern = new RegExp(`^${basename}([.-][a-f0-9]{8}){1,2}\\.js$`)
-      const match = files.find(f => pattern.test(f))
-      if (match) {
-        return res.sendFile(path.join(jsDir, match))
-      }
-    } catch (_) {
-      // Directory doesn't exist or unreadable — fall through to static/404
-    }
-    next()
-  })
-
-  app.use(express.static(publicDir, {
-    index: false,
-    maxAge: '1y',
-    immutable: true,
-    setHeaders: (res, filePath) => {
-      // HTML files must NOT be cached long-term — only fingerprinted assets (js/css with hash)
-      if (filePath.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
-      }
-    }
-  }))
-}
-
 // Link shortening redirects (must be before SPA fallback)
 const { linkRedirect } = require('./lib/@custom/redirects')
 app.use(linkRedirect)
-
-// Landing page: serve landing.html at root instead of SPA shell (task #12051)
-if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
-  const landingFile = path.join(publicDir, 'landing.html')
-  if (fs.existsSync(landingFile)) {
-    app.get('/', (_req, res) => {
-      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
-      res.sendFile(landingFile)
-    })
-  }
-}
 
 // SPA fallback — serve index.html for all non-API, non-static GET requests
 if (process.env.NODE_ENV === 'production') {

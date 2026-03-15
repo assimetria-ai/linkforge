@@ -3,71 +3,76 @@
  * Tracks API usage, AI costs, and other metered services
  */
 
+'use strict'
+
 exports.up = async function (db) {
+  // Enable uuid-ossp if not already
+  await db.none(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+
   // Usage tracking table for all metered services
-  await db.schema.createTable('usage_events', (table) => {
-    table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'))
-    table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
-    table.timestamp('created_at').defaultTo(db.fn.now())
-    
-    // Event details
-    table.string('service', 50).notNullable() // 'openai', 'anthropic', 'storage', etc.
-    table.string('operation', 100).notNullable() // 'chat', 'image', 'embedding', etc.
-    table.string('model', 100) // Model name if applicable
-    
-    // Usage metrics
-    table.integer('tokens_input').defaultTo(0)
-    table.integer('tokens_output').defaultTo(0)
-    table.integer('tokens_total').defaultTo(0)
-    table.bigInteger('bytes_processed').defaultTo(0) // For storage, images, etc.
-    table.integer('requests_count').defaultTo(1)
-    
-    // Cost tracking
-    table.decimal('cost_usd', 10, 6).defaultTo(0) // Cost in USD
-    table.string('pricing_model', 50) // 'per_token', 'per_request', 'per_gb', etc.
-    
-    // Metadata
-    table.jsonb('metadata') // Extra info: API key used, duration, status, etc.
-    
-    // Indexes for efficient querying
-    table.index(['user_id', 'created_at'])
-    table.index(['service', 'created_at'])
-    table.index('created_at')
-  })
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS usage_events (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      service VARCHAR(50) NOT NULL,
+      operation VARCHAR(100) NOT NULL,
+      model VARCHAR(100),
+      tokens_input INTEGER DEFAULT 0,
+      tokens_output INTEGER DEFAULT 0,
+      tokens_total INTEGER DEFAULT 0,
+      bytes_processed BIGINT DEFAULT 0,
+      requests_count INTEGER DEFAULT 1,
+      cost_usd NUMERIC(10,6) DEFAULT 0,
+      pricing_model VARCHAR(50),
+      metadata JSONB
+    );
+  `)
 
-  // Aggregate cost summary (materialized view concept)
-  await db.schema.createTable('usage_summary', (table) => {
-    table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'))
-    table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
-    table.date('date').notNullable()
-    table.string('service', 50).notNullable()
-    
-    // Aggregated metrics
-    table.integer('total_requests').defaultTo(0)
-    table.bigInteger('total_tokens').defaultTo(0)
-    table.bigInteger('total_bytes').defaultTo(0)
-    table.decimal('total_cost_usd', 10, 2).defaultTo(0)
-    
-    table.timestamp('updated_at').defaultTo(db.fn.now())
-    
-    // Unique constraint
-    table.unique(['user_id', 'date', 'service'])
-    table.index(['user_id', 'date'])
-  })
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS idx_usage_events_user_created ON usage_events(user_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_usage_events_service_created ON usage_events(service, created_at);
+    CREATE INDEX IF NOT EXISTS idx_usage_events_created ON usage_events(created_at);
+  `)
 
-  // User cost budget/limits (optional)
-  await db.schema.createTable('user_cost_limits', (table) => {
-    table.uuid('user_id').primary().references('id').inTable('users').onDelete('CASCADE')
-    table.decimal('monthly_limit_usd', 10, 2).defaultTo(100) // Default $100/month
-    table.decimal('daily_limit_usd', 10, 2).defaultTo(10) // Default $10/day
-    table.boolean('alerts_enabled').defaultTo(true)
-    table.integer('alert_threshold_percent').defaultTo(80) // Alert at 80%
-    table.timestamp('updated_at').defaultTo(db.fn.now())
-  })
+  // Aggregate cost summary
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS usage_summary (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date DATE NOT NULL,
+      service VARCHAR(50) NOT NULL,
+      total_requests INTEGER DEFAULT 0,
+      total_tokens BIGINT DEFAULT 0,
+      total_bytes BIGINT DEFAULT 0,
+      total_cost_usd NUMERIC(10,2) DEFAULT 0,
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, date, service)
+    );
+  `)
+
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS idx_usage_summary_user_date ON usage_summary(user_id, date);
+  `)
+
+  // User cost budget/limits
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS user_cost_limits (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      monthly_limit_usd NUMERIC(10,2) DEFAULT 100,
+      daily_limit_usd NUMERIC(10,2) DEFAULT 10,
+      alerts_enabled BOOLEAN DEFAULT true,
+      alert_threshold_percent INTEGER DEFAULT 80,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `)
+
+  console.log('[017_usage_tracking] applied schema: usage_events, usage_summary, user_cost_limits')
 }
 
 exports.down = async function (db) {
-  await db.schema.dropTableIfExists('user_cost_limits')
-  await db.schema.dropTableIfExists('usage_summary')
-  await db.schema.dropTableIfExists('usage_events')
+  await db.none('DROP TABLE IF EXISTS user_cost_limits CASCADE;')
+  await db.none('DROP TABLE IF EXISTS usage_summary CASCADE;')
+  await db.none('DROP TABLE IF EXISTS usage_events CASCADE;')
+  console.log('[017_usage_tracking] rolled back')
 }
