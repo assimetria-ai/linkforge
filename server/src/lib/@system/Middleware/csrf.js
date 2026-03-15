@@ -50,6 +50,8 @@ const CSRF_EXEMPT_PATHS = [
   '/users',            // POST — registration
   '/sessions',         // POST — login
   '/sessions/refresh', // POST — token rotation
+  '/auth/login',       // POST — login alias
+  '/auth/register',    // POST — registration alias
 ]
 
 const isExemptPath = (req) => {
