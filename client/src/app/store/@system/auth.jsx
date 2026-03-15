@@ -1,73 +1,76 @@
-// @system — Auth context: provides user, login, logout, register to the whole app
-// Wrap your root component (or App) with <AuthProvider>.
-// Consume with useAuthContext() in any component.
-
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { api } from '../../lib/@system/api'
-
-
-
+import { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
+
+const TOKEN_KEY = 'app_jwt'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const refresh = useCallback(async () => {
-    try {
-      const { user } = await api.get('/sessions/me')
-      setUser(user)
-    } catch {
-      setUser(null)
-    }
-  }, [])
-
   useEffect(() => {
-    refresh().finally(() => setLoading(false))
-  }, [refresh])
-
-  const login = useCallback(async (email, password) => {
-    const { user } = await api.post('/sessions', { email, password })
-    setUser(user)
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (!token) {
+      setLoading(false)
+      return
+    }
+    fetch('/api/users/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data?.user) {
+          setUser(data.user)
+        } else {
+          localStorage.removeItem(TOKEN_KEY)
+        }
+      })
+      .catch(() => localStorage.removeItem(TOKEN_KEY))
+      .finally(() => setLoading(false))
   }, [])
 
-  const register = useCallback(async (name, email, password) => {
-    await api.post('/users', { name, email, password })
-    await login(email, password)
-  }, [login])
+  async function login(token) {
+    localStorage.setItem(TOKEN_KEY, token)
+    try {
+      const res = await fetch('/api/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      } else {
+        setUser({ token })
+      }
+    } catch {
+      setUser({ token })
+    }
+  }
 
-  const logout = useCallback(async () => {
-    await api.delete('/sessions')
+  function logout() {
+    const token = localStorage.getItem(TOKEN_KEY)
+    localStorage.removeItem(TOKEN_KEY)
     setUser(null)
-  }, [])
+    if (token) {
+      fetch('/api/sessions', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {})
+    }
+  }
 
-  const updateUser = useCallback(async (fields) => {
-    const { user: updated } = await api.patch('/users/me', fields)
-    setUser(updated)
-  }, [])
-
-  const resendVerificationEmail = useCallback(async () => {
-    await api.post('/users/email/verify/request', {})
-  }, [])
-
-  const completeOnboarding = useCallback(async (data) => {
-    const { user: updated } = await api.post('/onboarding/complete', data ?? {})
-    setUser(updated)
-  }, [])
+  function getToken() {
+    return localStorage.getItem(TOKEN_KEY)
+  }
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, isAuthenticated: !!user, login, register, logout, refresh, updateUser, resendVerificationEmail, completeOnboarding }}
-    >
+    <AuthContext.Provider value={{ user, loading, login, logout, getToken }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-export function useAuthContext(){
+export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuthContext must be used inside <AuthProvider>')
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx
 }
-

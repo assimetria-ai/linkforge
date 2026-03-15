@@ -1,7 +1,9 @@
-// @system — subscriptions API
-const express = require('express')
-const router = express.Router()
-const stripe = require('../../../lib/@system/Stripe')
+// @system — Subscriptions API: plan listing + user subscription queries
+'use strict'
+
+const express          = require('express')
+const router           = express.Router()
+const stripe           = require('../../../lib/@system/Stripe')
 const { authenticate } = require('../../../lib/@system/Helpers/auth')
 const SubscriptionRepo = require('../../../db/repos/@system/SubscriptionRepo')
 
@@ -26,9 +28,9 @@ router.get('/subscriptions/me/all', authenticate, async (req, res, next) => {
 })
 
 // GET /api/subscriptions/plans — fetch active prices from Stripe (public)
-// Products/prices are configured in Stripe dashboard; this endpoint fetches them live.
-// Products must have metadata.featured = 'true' to be listed, and prices need metadata.order for sorting.
-// Returns an empty list when STRIPE_SECRET_KEY is not configured (instead of propagating the auth error).
+// Products/prices are configured in the Stripe dashboard; this endpoint fetches
+// them live. Products must have metadata.hidden !== 'true' to appear.
+// Returns an empty list when STRIPE_SECRET_KEY is not configured.
 router.get('/subscriptions/plans', async (req, res, next) => {
   if (!process.env.STRIPE_SECRET_KEY) {
     return res.json({ plans: [] })
@@ -44,7 +46,6 @@ router.get('/subscriptions/plans', async (req, res, next) => {
     const plans = prices.data
       .filter((price) => {
         const product = price.product
-        // Skip archived/deleted products and those explicitly hidden
         return (
           price.active &&
           product &&
@@ -56,16 +57,16 @@ router.get('/subscriptions/plans', async (req, res, next) => {
       .map((price) => {
         const product = price.product
         return {
-          priceId: price.id,
-          productId: product.id,
-          name: product.name,
-          description: product.description ?? null,
-          amount: price.unit_amount,
-          currency: price.currency,
-          interval: price.recurring?.interval ?? 'one_time',
+          priceId:       price.id,
+          productId:     product.id,
+          name:          product.name,
+          description:   product.description ?? null,
+          amount:        price.unit_amount,
+          currency:      price.currency,
+          interval:      price.recurring?.interval ?? 'one_time',
           intervalCount: price.recurring?.interval_count ?? 1,
-          trialDays: price.recurring?.trial_period_days ?? null,
-          metadata: { ...product.metadata, ...price.metadata },
+          trialDays:     price.recurring?.trial_period_days ?? null,
+          metadata:      { ...product.metadata, ...price.metadata },
         }
       })
       .sort((a, b) => {

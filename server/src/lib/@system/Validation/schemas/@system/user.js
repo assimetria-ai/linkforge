@@ -1,31 +1,79 @@
-const { z } = require('zod')
+// @system — user validation schemas
+// Provides field-level validation rules for all user API endpoints.
 
-const RegisterBody = z.object({
-  email: z.string({ required_error: 'email is required' }).email('email must be a valid email address'),
-  password: z.string({ required_error: 'password is required' }).min(1, 'password is required'),
-  name: z.string().trim().optional(),
+'use strict'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Build a lightweight schema from a rules object.
+ *
+ * Rule options per field:
+ *   required   {boolean}  - field must be present and non-empty
+ *   type       {string}   - 'email' triggers format check
+ *   minLength  {number}   - minimum string length
+ *   maxLength  {number}   - maximum string length
+ *   label      {string}   - human-readable name used in error messages
+ */
+function makeSchema(rules) {
+  return {
+    validate(data) {
+      for (const [field, rule] of Object.entries(rules)) {
+        const val     = data?.[field]
+        const present = val !== undefined && val !== null && val !== ''
+
+        if (rule.required && !present) {
+          return { error: `${rule.label || field} is required` }
+        }
+
+        if (!present) continue // skip further checks for optional absent fields
+
+        if (rule.type === 'email' && !EMAIL_RE.test(val)) {
+          return { error: `${rule.label || field} must be a valid email address` }
+        }
+
+        if (typeof rule.minLength === 'number' && String(val).length < rule.minLength) {
+          return { error: `${rule.label || field} must be at least ${rule.minLength} characters` }
+        }
+
+        if (typeof rule.maxLength === 'number' && String(val).length > rule.maxLength) {
+          return { error: `${rule.label || field} must be at most ${rule.maxLength} characters` }
+        }
+      }
+
+      return { error: null }
+    },
+  }
+}
+
+// ── Schemas ────────────────────────────────────────────────────────────────────
+
+const RegisterBody = makeSchema({
+  email:    { required: true,  type: 'email', label: 'Email' },
+  password: { required: true,  minLength: 8,  label: 'Password' },
+  name:     { required: false, maxLength: 100, label: 'Name' },
 })
 
-const UpdateProfileBody = z.object({
-  name: z.string().trim().min(1, 'name must be a non-empty string').optional(),
+const UpdateProfileBody = makeSchema({
+  name: { required: false, maxLength: 100, label: 'Name' },
 })
 
-const ChangePasswordBody = z.object({
-  currentPassword: z.string({ required_error: 'currentPassword is required' }).min(1, 'currentPassword is required'),
-  newPassword: z.string({ required_error: 'newPassword is required' }).min(1, 'newPassword is required'),
+const ChangePasswordBody = makeSchema({
+  currentPassword: { required: true, label: 'Current password' },
+  newPassword:     { required: true, minLength: 8, label: 'New password' },
 })
 
-const PasswordResetRequestBody = z.object({
-  email: z.string({ required_error: 'email is required' }).email('email must be a valid email address'),
+const PasswordResetRequestBody = makeSchema({
+  email: { required: true, type: 'email', label: 'Email' },
 })
 
-const PasswordResetBody = z.object({
-  token: z.string({ required_error: 'token is required' }).min(1, 'token is required'),
-  password: z.string({ required_error: 'password is required' }).min(1, 'password is required'),
+const PasswordResetBody = makeSchema({
+  token:    { required: true, label: 'Reset token' },
+  password: { required: true, minLength: 8, label: 'Password' },
 })
 
-const VerifyEmailBody = z.object({
-  token: z.string({ required_error: 'token is required' }).min(1, 'token is required'),
+const VerifyEmailBody = makeSchema({
+  token: { required: true, label: 'Verification token' },
 })
 
 module.exports = {

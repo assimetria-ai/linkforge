@@ -1,80 +1,120 @@
-const { doubleCsrf } = require('csrf-csrf')
+// CSRF protection — X-CSRF-Token header synchronizer pattern
+//
+// Flow:
+//   1. csrfCookieMiddleware runs on every request.
+//      - If no nonce cookie exists, generate one and set it (httpOnly: false
+//        so that the browser JS can read it and attach it as a header).
+//      - Attaches req.csrfToken() helper that returns the HMAC-signed token
+//        the client should send in the X-CSRF-Token header.
+//
+//   2. csrfProtectMiddleware runs on every state-changing request
+//      (POST / PUT / PATCH / DELETE).
+//      - Reads the nonce from the cookie.
+//      - Reads the candidate token from the X-CSRF-Token request header.
+//      - Re-derives HMAC(nonce) and compares with the header value using
+//        crypto.timingSafeEqual to prevent timing-oracle attacks.
+//      - Rejects with 403 if the values are absent or do not match.
+//
+// Why this is safe:
+//   - An attacker on a different origin cannot read SameSite cookies, so they
+//     cannot obtain the nonce required to produce a valid header token.
+//   - SameSite alone is insufficient (not enforced on older browsers, cross-site
+//     navigation, etc.), so the header check is the primary gate.
+//   - HMAC prevents a client from forging arbitrary tokens without the secret.
+
+const crypto = require('crypto')
+
+// Secret used for HMAC signing.  CSRF_SECRET must be set in production (≥ 32
+// random bytes in hex).  In development a per-process secret is generated as a
+// convenience fallback — but in production a missing secret is a fatal error
+// because each restart / replica would generate a different value, breaking
+// token validation and leaving CSRF protection ineffective.
+const CSRF_SECRET = (() => {
+  if (process.env.CSRF_SECRET) return process.env.CSRF_SECRET
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[csrf] CSRF_SECRET environment variable is required in production. ' +
+      'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    )
+  }
+  return crypto.randomBytes(32).toString('hex')
+})()
+
+const NONCE_COOKIE  = 'csrf-nonce'
+const CSRF_HEADER   = 'x-csrf-token'
+const STATE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 /**
- * CSRF protection middleware using double-submit cookie pattern.
- *
- * This middleware protects against Cross-Site Request Forgery attacks by:
- * 1. Generating a CSRF token stored in an httpOnly cookie
- * 2. Requiring clients to send this token in a custom header (X-CSRF-Token)
- * 3. Validating that both values match before processing state-changing requests
- *
- * The middleware automatically handles GET, HEAD, and OPTIONS requests as safe
- * and only validates tokens for POST, PUT, PATCH, DELETE requests.
- *
- * Usage:
- *   - Add csrfProtection middleware to routes that need CSRF protection
- *   - Expose generateCsrfToken() via a GET endpoint so clients can fetch the token
- *   - Clients must include the token in the X-CSRF-Token header for protected requests
+ * Derive a signed CSRF token from a nonce.
+ * @param {string} nonce
+ * @returns {string} hex HMAC-SHA256 digest
  */
-const {
-  generateCsrfToken: _generateCsrfToken, // Generate a new CSRF token
-  doubleCsrfProtection                    // Middleware to validate CSRF tokens
-} = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
-  cookieName: '__Host-psifi.x-csrf-token',
-  cookieOptions: {
-    sameSite: 'strict',
-    path: '/',
-    secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-    httpOnly: true, // Prevent JavaScript access to the cookie
-  },
-  size: 64, // Token size in bytes
-  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'], // Safe methods that don't need CSRF protection
-  getTokenFromRequest: (req) => req.headers['x-csrf-token'], // Custom header for the token
-  getSessionIdentifier: (req) => {
-    // Use session ID if available, otherwise fall back to a default empty string
-    // This is safe because CSRF protection relies on the double-submit cookie pattern,
-    // not on session identification
-    return req.sessionID || req.session?.id || ''
-  },
-})
+function signNonce(nonce) {
+  return crypto.createHmac('sha256', CSRF_SECRET).update(nonce).digest('hex')
+}
 
 /**
- * CSRF protection middleware that validates tokens on state-changing requests
+ * Middleware — ensures every response carries a nonce cookie and exposes
+ * req.csrfToken() so route handlers / the /api/csrf-token endpoint can
+ * return the signed token to the client.
+ *
+ * Must run AFTER cookieParser().
  */
-const csrfProtection = (req, res, next) => {
-  // Skip CSRF validation in test/development environments if needed
-  if (process.env.NODE_ENV === 'test' || process.env.SKIP_CSRF === 'true') {
-    return next()
+function csrfCookieMiddleware(req, res, next) {
+  let nonce = req.cookies[NONCE_COOKIE]
+
+  if (!nonce) {
+    nonce = crypto.randomBytes(32).toString('hex')
+    res.cookie(NONCE_COOKIE, nonce, {
+      httpOnly: false,                                           // JS must be able to read it
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    })
   }
 
-  doubleCsrfProtection(req, res, (err) => {
-    if (err) {
-      return res.status(403).json({ 
-        message: 'Invalid or missing CSRF token',
-        error: 'CSRF_VALIDATION_FAILED'
-      })
-    }
-    next()
-  })
+  req.csrfToken = () => signNonce(nonce)
+  next()
 }
 
 /**
- * Middleware to generate and expose CSRF token to clients
- * Mount this on a GET endpoint (e.g., GET /api/csrf-token)
+ * Middleware — validates the X-CSRF-Token header on state-changing requests.
+ *
+ * Must run AFTER csrfCookieMiddleware().
+ * Exempt routes (e.g. Stripe webhooks) must be mounted BEFORE this middleware.
  */
-const generateCsrfToken = (req, res) => {
-  const token = _generateCsrfToken(req, res)
-  res.json({ csrfToken: token })
+function csrfProtectMiddleware(req, res, next) {
+  if (!STATE_METHODS.has(req.method)) return next()
+
+  const nonce       = req.cookies[NONCE_COOKIE]
+  const headerToken = req.headers[CSRF_HEADER]
+
+  if (!nonce || !headerToken) {
+    return res.status(403).json({
+      error:   'CSRF token missing',
+      message: 'Please include a valid X-CSRF-Token header. Fetch a token from GET /api/csrf-token.',
+    })
+  }
+
+  const expected = Buffer.from(signNonce(nonce))
+  const provided  = Buffer.from(headerToken)
+
+  // Reject immediately if lengths differ (timingSafeEqual requires equal lengths).
+  if (expected.length !== provided.length) {
+    return res.status(403).json({
+      error:   'Invalid CSRF token',
+      message: 'Form submission rejected. Please refresh and try again.',
+    })
+  }
+
+  if (!crypto.timingSafeEqual(expected, provided)) {
+    return res.status(403).json({
+      error:   'Invalid CSRF token',
+      message: 'Form submission rejected. Please refresh and try again.',
+    })
+  }
+
+  next()
 }
 
-/**
- * Export generateToken as an alias for compatibility
- */
-const generateToken = _generateCsrfToken
-
-module.exports = {
-  csrfProtection,
-  generateCsrfToken,
-  generateToken,
-}
+module.exports = { csrfCookieMiddleware, csrfProtectMiddleware }

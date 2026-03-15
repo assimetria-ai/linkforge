@@ -1,199 +1,187 @@
-/**
- * Search Helpers
- * 
- * Reusable utilities for building search queries and handling search patterns
- * Fixed for PostgreSQL parameter syntax ($1, $2, etc.)
- */
+// @system — Search helpers
+//
+// Builds parameterised ILIKE search conditions for PostgreSQL.
+// Never uses string interpolation — all values go through the parameterised
+// query interface to prevent SQL injection.
+//
+// Usage:
+//   const { parseSearch, buildSearchClause, applyFilters } = require('./search')
+//
+//   // In a route handler:
+//   const { term, filters } = parseSearch(req.query, {
+//     allowedFilters: ['status', 'category'],
+//   })
+//
+//   const { clause, params, nextIndex } = buildSearchClause(term, ['title', 'body'], 1)
+//   // clause  → '(title ILIKE $1 OR body ILIKE $1)'
+//   // params  → ['%hello%']
+//   // nextIndex → 2
+//
+//   const { clause: fClause, params: fParams } = applyFilters(filters, nextIndex)
+//   // fClause → 'AND status = $2'
+//   // fParams → ['active']
+//
+//   const where = [clause, fClause].filter(Boolean).join(' ')
+//   // → '(title ILIKE $1 OR body ILIKE $1) AND status = $2'
 
 /**
- * Build a PostgreSQL full-text search condition
- * 
- * @param {string} query - Search query string
- * @param {Array<string>} columns - Column names to search
- * @param {Object} options - Search options
- * @param {boolean} options.caseSensitive - Use case-sensitive search (default: false)
- * @param {string} options.mode - Search mode: 'contains', 'starts_with', 'exact' (default: 'contains')
- * @param {number} options.paramOffset - Starting parameter index (default: 1)
- * @returns {Object} SQL condition and parameters
+ * Parse search parameters from req.query.
+ *
+ * @param {object} query               — req.query
+ * @param {object} opts
+ * @param {string[]} opts.allowedFilters — whitelist of column names that may be filtered
+ * @param {string}   opts.termKey        — query param key for the search term (default: 'q')
+ * @param {number}   opts.maxTermLength  — max length to accept for the search term (default: 200)
+ * @returns {{ term: string|null, filters: Record<string, string> }}
  */
-function buildSearchCondition(query, columns, options = {}) {
-  const {
-    caseSensitive = false,
-    mode = 'contains',
-    paramOffset = 1,
-  } = options
+function parseSearch(query = {}, { allowedFilters = [], termKey = 'q', maxTermLength = 200 } = {}) {
+  const rawTerm = query[termKey]
+  const term    = rawTerm && typeof rawTerm === 'string'
+    ? rawTerm.trim().slice(0, maxTermLength) || null
+    : null
 
-  if (!query || !columns || columns.length === 0) {
-    return { condition: '', params: [] }
-  }
-
-  const searchTerm = caseSensitive ? query : query.toLowerCase()
-  let pattern
-
-  switch (mode) {
-    case 'starts_with':
-      pattern = `${searchTerm}%`
-      break
-    case 'exact':
-      pattern = searchTerm
-      break
-    case 'contains':
-    default:
-      pattern = `%${searchTerm}%`
-      break
-  }
-
-  const operator = mode === 'exact' ? '=' : (caseSensitive ? 'LIKE' : 'ILIKE')
-  const conditions = columns.map((col, index) => {
-    const paramNum = paramOffset + index
-    return caseSensitive ? `${col} ${operator} $${paramNum}` : `LOWER(${col}) ${operator} $${paramNum}`
-  })
-
-  return {
-    condition: `(${conditions.join(' OR ')})`,
-    params: columns.map(() => pattern),
-  }
-}
-
-/**
- * Parse search query parameters
- * 
- * @param {Object} query - Express req.query object
- * @param {Object} options - Configuration options
- * @param {string} options.queryParam - Name of the search query parameter (default: 'q')
- * @param {string} options.fieldsParam - Name of the fields parameter (default: 'fields')
- * @param {Array<string>} options.defaultFields - Default fields to search if none specified
- * @returns {Object} Parsed search configuration
- */
-function parseSearchQuery(query, options = {}) {
-  const {
-    queryParam = 'q',
-    fieldsParam = 'fields',
-    defaultFields = [],
-  } = options
-
-  const searchQuery = query[queryParam]?.trim() || ''
-  
-  let fields = defaultFields
-  if (query[fieldsParam]) {
-    const requestedFields = query[fieldsParam].split(',').map((f) => f.trim()).filter(Boolean)
-    if (requestedFields.length > 0) {
-      fields = requestedFields
+  // Only keep filters that are on the explicit allowlist.
+  // This prevents the caller from accidentally exposing arbitrary column filtering.
+  const filters = {}
+  for (const key of allowedFilters) {
+    const val = query[key]
+    if (val !== undefined && val !== '') {
+      filters[key] = String(val)
     }
   }
 
+  return { term, filters }
+}
+
+/**
+ * Build a parameterised ILIKE search clause across multiple columns.
+ *
+ * All columns receive the same ILIKE pattern — useful for simple full-text
+ * style search across a fixed set of text columns.
+ *
+ * @param {string|null} term       — search term (null → no clause generated)
+ * @param {string[]}    columns    — table columns to search (e.g. ['title', 'body'])
+ * @param {number}      startIndex — starting $N index for pg-promise params (default: 1)
+ * @returns {{ clause: string, params: any[], nextIndex: number }}
+ *
+ * Example:
+ *   buildSearchClause('hello', ['title', 'description'], 1)
+ *   → { clause: '(title ILIKE $1 OR description ILIKE $1)', params: ['%hello%'], nextIndex: 2 }
+ */
+function buildSearchClause(term, columns, startIndex = 1) {
+  if (!term || columns.length === 0) {
+    return { clause: '', params: [], nextIndex: startIndex }
+  }
+
+  const pattern    = `%${term}%`
+  const conditions = columns.map(col => `${col} ILIKE $${startIndex}`)
+
   return {
-    query: searchQuery,
-    fields,
-    isEmpty: !searchQuery,
+    clause:    `(${conditions.join(' OR ')})`,
+    params:    [pattern],
+    nextIndex: startIndex + 1,
   }
 }
 
 /**
- * Build SQL WHERE clause with search and filters
- * 
- * @param {Object} options - Search and filter options
- * @param {string} options.searchQuery - Search term
- * @param {Array<string>} options.searchFields - Fields to search
- * @param {Object} options.filters - Key-value filter conditions
- * @param {string} options.searchMode - Search mode for buildSearchCondition
- * @returns {Object} SQL WHERE clause and parameters
+ * Build parameterised equality filters from a filters object.
+ *
+ * @param {Record<string, string>} filters   — { column: value } pairs
+ * @param {number}                 startIndex — starting $N index
+ * @param {{ prefix?: string }}    opts       — 'AND ' prefix by default
+ * @returns {{ clause: string, params: any[], nextIndex: number }}
+ *
+ * Example:
+ *   applyFilters({ status: 'active', category: 'news' }, 2)
+ *   → { clause: 'AND status = $2 AND category = $3', params: ['active', 'news'], nextIndex: 4 }
  */
-function buildWhereClause(options = {}) {
-  const {
-    searchQuery,
-    searchFields = [],
-    filters = {},
-    searchMode = 'contains',
-  } = options
+function applyFilters(filters = {}, startIndex = 1, { prefix = 'AND ' } = {}) {
+  const entries = Object.entries(filters)
+  if (entries.length === 0) {
+    return { clause: '', params: [], nextIndex: startIndex }
+  }
 
-  const conditions = []
+  let idx    = startIndex
+  const parts  = []
   const params = []
 
-  // Add search condition
-  if (searchQuery && searchFields.length > 0) {
-    const searchCondition = buildSearchCondition(searchQuery, searchFields, { 
-      mode: searchMode,
-      paramOffset: params.length + 1,
-    })
-    if (searchCondition.condition) {
-      conditions.push(searchCondition.condition)
-      params.push(...searchCondition.params)
-    }
+  for (const [col, val] of entries) {
+    parts.push(`${col} = $${idx}`)
+    params.push(val)
+    idx++
   }
-
-  // Add filter conditions
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      if (Array.isArray(value)) {
-        // Handle IN clause for arrays
-        const placeholders = value.map((_, idx) => `$${params.length + idx + 1}`).join(', ')
-        conditions.push(`${key} IN (${placeholders})`)
-        params.push(...value)
-      } else {
-        // Handle single value
-        params.push(value)
-        conditions.push(`${key} = $${params.length}`)
-      }
-    }
-  })
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
   return {
-    whereClause,
+    clause:    `${prefix}${parts.join(` ${prefix}`)}`,
     params,
+    nextIndex: idx,
   }
 }
 
 /**
- * Sanitize search query
- * Removes potentially harmful characters and normalizes whitespace
- * 
- * @param {string} query - Raw search query
- * @returns {string} Sanitized query
+ * Convenience: combine buildSearchClause + applyFilters into a single WHERE block.
+ *
+ * Returns a ready-to-append SQL fragment that starts with 'WHERE' when there
+ * are conditions, or an empty string when there are none.
+ *
+ * @param {object} opts
+ * @param {string|null} opts.term
+ * @param {string[]}    opts.columns
+ * @param {object}      opts.filters
+ * @param {number}      opts.startIndex
+ * @returns {{ where: string, params: any[], nextIndex: number }}
+ *
+ * Example:
+ *   buildWhereClause({ term: 'hello', columns: ['title'], filters: { status: 'active' }, startIndex: 1 })
+ *   → { where: 'WHERE (title ILIKE $1) AND status = $2', params: ['%hello%', 'active'], nextIndex: 3 }
  */
-function sanitizeSearchQuery(query) {
-  if (!query) return ''
-  
-  return query
-    .trim()
-    .replace(/[;'"\\]/g, '')  // Remove SQL-injection risky chars
-    .replace(/\s+/g, ' ')     // Normalize whitespace
-    .substring(0, 200)        // Limit length
+function buildWhereClause({ term = null, columns = [], filters = {}, startIndex = 1 } = {}) {
+  const search  = buildSearchClause(term, columns, startIndex)
+  const filter  = applyFilters(
+    filters,
+    search.nextIndex,
+    { prefix: search.clause ? 'AND ' : '' }
+  )
+
+  const parts = [search.clause, filter.clause].filter(Boolean)
+
+  return {
+    where:     parts.length ? `WHERE ${parts.join(' ')}` : '',
+    params:    [...search.params, ...filter.params],
+    nextIndex: filter.nextIndex,
+  }
 }
 
 /**
- * Build ORDER BY clause with sorting
- * 
- * @param {Object} options - Sorting options
- * @param {string} options.sortBy - Field to sort by
- * @param {string} options.sortOrder - Sort direction: 'asc' or 'desc' (default: 'desc')
- * @param {Array<string>} options.allowedFields - Whitelist of sortable fields
- * @param {string} options.defaultSort - Default sort field
- * @returns {string} SQL ORDER BY clause
+ * Parse a ?fields=col1,col2 query parameter into a validated column array.
+ *
+ * Enables sparse fieldsets — clients request only the columns they need,
+ * reducing payload size. Only columns in allowedFields are returned,
+ * preventing accidental exposure of sensitive columns.
+ *
+ * Returns null when the param is absent or produces no valid columns.
+ * Callers should fall back to '*' on null.
+ *
+ * @param {object}   query         — req.query
+ * @param {string[]} allowedFields — whitelisted column names (e.g. ['id', 'title', 'status'])
+ * @returns {string[]|null}        — validated field array, or null
+ *
+ * Example:
+ *   const fields = parseFields(req.query, ['id', 'title', 'status', 'created_at'])
+ *   const columns = fields ? fields.join(', ') : '*'
+ *   // ?fields=id,title,status → 'id, title, status'
+ *   // ?fields=id,password     → ['id']  (password not in whitelist)
+ *   // (no ?fields param)      → null   → use '*'
  */
-function buildOrderByClause(options = {}) {
-  const {
-    sortBy,
-    sortOrder = 'desc',
-    allowedFields = [],
-    defaultSort = 'created_at',
-  } = options
+function parseFields(query = {}, allowedFields = []) {
+  if (!query.fields || allowedFields.length === 0) return null
 
-  let field = defaultSort
-  if (sortBy && allowedFields.includes(sortBy)) {
-    field = sortBy
-  }
+  const valid = String(query.fields)
+    .split(',')
+    .map(f => f.trim())
+    .filter(f => allowedFields.includes(f))
 
-  const direction = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC'
-  return `ORDER BY ${field} ${direction}`
+  return valid.length > 0 ? valid : null
 }
 
-module.exports = {
-  buildSearchCondition,
-  parseSearchQuery,
-  buildWhereClause,
-  sanitizeSearchQuery,
-  buildOrderByClause,
-}
+module.exports = { parseSearch, buildSearchClause, applyFilters, buildWhereClause, parseFields }

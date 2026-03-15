@@ -1,369 +1,386 @@
-// @system — Email service
-// Sends transactional emails via three possible transports (in priority order):
-//   1. Resend  — when EMAIL_PROVIDER=resend or RESEND_API_KEY is set (and SMTP_HOST is absent)
-//   2. SMTP    — when SMTP_HOST is configured (also covers Resend SMTP relay)
-//   3. SES     — when EMAIL_PROVIDER=ses or AWS creds are set
-//   4. Console — dev fallback when nothing is configured
+// @system — email service
+// Supports five providers (auto-detected from env vars):
+//   resend   — Resend REST API via adapters/resend.js
+//   sendgrid — SendGrid v3 API via adapters/sendgrid.js
+//   ses      — AWS SES via @aws-sdk/client-ses
+//   smtp     — any SMTP server via adapters/smtp.js (Resend SMTP relay, SendGrid, Mailgun, etc.)
+//   console  — logs emails to stdout (dev / test fallback)
 //
-// Environment variables:
-//   EMAIL_PROVIDER         — 'resend' | 'smtp' | 'ses' | 'console' (optional; auto-detected)
-//   EMAIL_FROM             — Sender e.g. "App <noreply@example.com>"
-//   APP_URL                — Used to build action links in templates
-//   APP_NAME               — Product display name used in email copy (default: 'App')
-//   EMAIL_TRACKING_SECRET  — Shared secret for /api/email-logs ingestion
-//
-//   Resend (native API):
-//     RESEND_API_KEY       — Resend API key (re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)
-//     RESEND_REPLY_TO      — Optional reply-to address
-//
-//   SMTP (any provider including Resend SMTP relay):
-//     SMTP_HOST            — SMTP hostname e.g. smtp.resend.com, smtp.sendgrid.net
-//     SMTP_PORT            — Port (default: 587)
-//     SMTP_USER            — Username
-//     SMTP_PASS            — Password / API key
-//     SMTP_SECURE          — 'true' to force TLS (auto: true if port 465)
-//     SMTP_POOL            — 'true' to use connection pooling
-//
-//   SES:
-//     AWS_REGION           — e.g. eu-west-1
-//     AWS_ACCESS_KEY_ID    — IAM access key
-//     AWS_SECRET_ACCESS_KEY— IAM secret key
-//     SES_FROM_EMAIL       — Fallback sender when EMAIL_FROM is absent
+// Provider selection order:
+//   1. Explicit: EMAIL_PROVIDER=resend|sendgrid|ses|smtp|console
+//   2. Auto-detect: resend when RESEND_API_KEY is set;
+//                   sendgrid when SENDGRID_API_KEY is set;
+//                   ses when AWS creds + SES_FROM_EMAIL are set;
+//                   smtp when SMTP_HOST is set;
+//                   else console
 //
 // Usage:
-//   const Email = require('./lib/@system/Email')
-//   await Email.sendVerificationEmail({ to, name, token })
-//   await Email.sendPasswordResetEmail({ to, name, token })
-//   await Email.sendWelcomeEmail({ to, name })
-//   await Email.sendInvitationEmail({ to, inviterName, orgName, token })
-//   await Email.sendMagicLinkEmail({ to, name, token })
-//   await Email.sendNotificationEmail({ to, subject, title, body, ctaLabel, ctaUrl })
-//   await Email.send({ to, subject, html, text, template })  // raw send
+//   const email = require('../lib/@system/Email')
+//   await email.send({ to, subject, html, text })
+//   await email.sendVerificationEmail({ to, name, token })
+//   await email.sendWelcomeEmail({ to, name })
+//   await email.sendPasswordResetEmail({ to, name, token })
+//
+// Sub-modules (require separately):
+//   ./bounces      — Bounce/complaint handling & suppression list
+//   ./webhooks     — Webhook signature verification for Resend/SendGrid/SES
+//   ./dns-helpers  — SPF/DKIM/DMARC record generation & validation
+//   ./rate-limit   — Per-recipient and global send rate limiting
 
-'use strict'
-
-const logger = require('../Logger')
+const logger    = require('../Logger')
 const templates = require('./templates')
+const bounces   = require('./bounces')
+const rateLimit = require('./rate-limit')
 
-// ── Transport / adapter state ─────────────────────────────────────────────────
+// ── Email delivery log (DB) ───────────────────────────────────────────────────
+// Every send attempt is recorded in the email_log table so that delivery history
+// is visible in the UI and available for debugging.  Writes degrade gracefully:
+// if the DB is not configured or the migration has not run, the error is swallowed
+// so it never interrupts email delivery.
 
-let _state = null  // { provider, smtpTransporter? }
-let _onEmailSent = null  // optional callback: (emailData) => Promise<void>
+function getDb() {
+  return require('../PostgreSQL')
+}
 
-/**
- * Detect the active provider and initialise adapters once.
- * Returns { provider } where provider is 'resend' | 'smtp' | 'ses' | 'console'.
- */
-function getTransport() {
-  if (_state !== null) return _state
-
-  const explicit = (process.env.EMAIL_PROVIDER ?? '').toLowerCase()
-
-  // ── Resend (native API) ───────────────────────────────────────────────────
-  const hasResendKey = !!process.env.RESEND_API_KEY
-  const preferResend =
-    explicit === 'resend' ||
-    (!explicit && !process.env.SMTP_HOST && !process.env.AWS_ACCESS_KEY_ID && hasResendKey)
-
-  if (preferResend) {
-    if (!hasResendKey) {
-      logger.warn('[Email] EMAIL_PROVIDER=resend but RESEND_API_KEY is not set — falling back')
-    } else {
-      _state = { provider: 'resend' }
-      logger.info('[Email] Resend adapter initialised (native API)')
-      return _state
-    }
+async function recordEmailLog({ to, subject, provider, status, error = null, messageId = null }) {
+  try {
+    const db = getDb()
+    await db.none(
+      `INSERT INTO email_log ("to", subject, provider, status, error, message_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [to, subject, provider, status, error || null, messageId || null]
+    )
+  } catch {
+    // Silently ignore — audit log must never break email delivery.
   }
+}
 
-  // ── SES ───────────────────────────────────────────────────────────────────
-  const hasSesCredentials =
-    process.env.AWS_ACCESS_KEY_ID &&
-    process.env.AWS_SECRET_ACCESS_KEY &&
-    (process.env.SES_FROM_EMAIL || process.env.EMAIL_FROM)
+const APP_NAME = process.env.APP_NAME || 'App'
+const APP_URL  = process.env.APP_URL  || 'http://localhost:5173'
 
-  if (explicit === 'ses' || (!explicit && !process.env.SMTP_HOST && hasSesCredentials)) {
-    try {
-      const nodemailer = require('nodemailer')
-      const { SESClient, SendRawEmailCommand } = require('@aws-sdk/client-ses')
+// Rate limiting: enabled in production by default.
+// Override explicitly with EMAIL_RATE_LIMIT_ENABLED=true|false.
+const RATE_LIMIT_ENABLED = process.env.EMAIL_RATE_LIMIT_ENABLED !== undefined
+  ? process.env.EMAIL_RATE_LIMIT_ENABLED !== 'false'
+  : process.env.NODE_ENV === 'production'
 
-      const ses = new SESClient({
-        region: process.env.AWS_REGION ?? 'eu-west-1',
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        },
-      })
+function getFrom() {
+  return process.env.EMAIL_FROM || `${APP_NAME} <noreply@example.com>`
+}
 
-      const transporter = nodemailer.createTransport({
-        SES: { ses, aws: { SendRawEmailCommand } },
-        sendingRate: 14,
-      })
+// ── Provider detection ────────────────────────────────────────────────────────
 
-      _state = { provider: 'ses', smtpTransporter: transporter }
-      logger.info({ region: process.env.AWS_REGION }, '[Email] SES transport initialised')
-      return _state
-    } catch (err) {
-      logger.warn({ err }, '[Email] SES init failed — falling back to SMTP')
-    }
-  }
+function detectProvider() {
+  const explicit = process.env.EMAIL_PROVIDER
+  if (explicit) return explicit
 
-  // ── SMTP (covers Resend SMTP relay, SendGrid, Mailgun, etc.) ─────────────
-  if (explicit === 'smtp' || process.env.SMTP_HOST) {
-    try {
-      const smtpAdapter = require('./adapters/smtp')
-      const transporter = smtpAdapter.createTransport()
-      _state = { provider: 'smtp', smtpTransporter: transporter }
-      return _state
-    } catch (err) {
-      logger.warn({ err }, '[Email] SMTP init failed — falling back to console')
-    }
-  }
+  if (process.env.RESEND_API_KEY) return 'resend'
+  if (process.env.SENDGRID_API_KEY) return 'sendgrid'
 
-  // ── Console (dev fallback) ────────────────────────────────────────────────
-  _state = { provider: 'console' }
-  logger.warn(
-    '[Email] No transport configured — emails logged to console only. ' +
-      'Set RESEND_API_KEY, SMTP_HOST, or EMAIL_PROVIDER=ses to enable real sending.',
-  )
-  return _state
+  const hasAwsCreds = process.env.AWS_ACCESS_KEY_ID && process.env.SES_FROM_EMAIL
+  if (hasAwsCreds) return 'ses'
+
+  if (process.env.SMTP_HOST) return 'smtp'
+
+  return 'console'
+}
+
+// ── SMTP transport (adapters/smtp.js, lazy init) ──────────────────────────────
+
+let _smtpTransport = null
+
+function getSmtpTransport() {
+  if (_smtpTransport) return _smtpTransport
+  const smtpAdapter = require('./adapters/smtp')
+  _smtpTransport = smtpAdapter.createTransport()
+  return _smtpTransport
+}
+
+// ── SES client (AWS SDK v3, lazy init) ────────────────────────────────────────
+
+let _sesClient = null
+
+function getSesClient() {
+  if (_sesClient) return _sesClient
+
+  const { SESClient } = require('@aws-sdk/client-ses')
+  _sesClient = new SESClient({ region: process.env.AWS_REGION ?? 'eu-west-1' })
+  return _sesClient
 }
 
 // ── Core send ─────────────────────────────────────────────────────────────────
 
 /**
- * Send an email.
+ * Send a single email.
  *
- * @param {object}  opts
- * @param {string}  opts.to        Recipient address
- * @param {string}  opts.subject   Subject line
- * @param {string}  opts.html      HTML body
- * @param {string} [opts.text]     Plain-text fallback (auto-stripped from html if omitted)
- * @param {string} [opts.template] Template identifier for logging (e.g. 'verification')
- * @param {number} [opts.userId]   Associated user ID for log record
- * @param {string} [opts.replyTo]  Reply-to address
- * @param {string[]} [opts.cc]     CC recipients
- * @param {string[]} [opts.bcc]    BCC recipients
- * @param {object[]} [opts.attachments] Attachments
- * @returns {Promise<{ messageId: string, provider: string, devMode?: boolean }>}
+ * @param {object} opts
+ * @param {string}  opts.to       - Recipient address
+ * @param {string}  opts.subject  - Email subject line
+ * @param {string}  [opts.html]   - HTML body
+ * @param {string}  [opts.text]   - Plain-text body (fallback)
+ * @param {string}  [opts.from]   - Sender address (defaults to EMAIL_FROM / APP_NAME)
  */
-async function send({ to, subject, html, text, template, userId, replyTo, cc, bcc, attachments }) {
-  const from =
-    process.env.EMAIL_FROM ??
-    process.env.SES_FROM_EMAIL ??
-    'noreply@example.com'
+async function send({ to, subject, html, text, from, skipChecks = false }) {
+  from = from || getFrom()
+  const provider = detectProvider()
 
-  const plainText = text ?? _htmlToText(html)
-  const { provider, smtpTransporter } = getTransport()
+  // ── Pre-send checks (suppression + rate limit) ────────────────────────────
+  if (!skipChecks && provider !== 'console') {
+    // Check suppression list
+    const suppressed = await bounces.isSuppressed(to)
+    if (suppressed) {
+      logger.warn({ to, subject, provider }, 'email blocked — recipient is suppressed')
+      await recordEmailLog({ to, subject, provider, status: 'suppressed', error: 'Recipient on suppression list' })
+      return { suppressed: true, provider }
+    }
 
-  // ── Console ──────────────────────────────────────────────────────────────
-  if (provider === 'console') {
-    logger.info(
-      { to, subject, html },
-      '[Email] Console mode — email NOT sent. Set RESEND_API_KEY, SMTP_HOST, or EMAIL_PROVIDER=ses.',
-    )
-    const urlMatch = html.match(/href="([^"]+)"/)
-    if (urlMatch) logger.info({ url: urlMatch[1] }, '[Email] Action URL')
-
-    await _trackEmail({ to, subject, template, messageId: 'console', provider: 'console', userId })
-    return { messageId: 'console', provider: 'console', devMode: true }
+    // Check rate limits
+    if (RATE_LIMIT_ENABLED) {
+      const rl = await rateLimit.checkRateLimit(to)
+      if (!rl.allowed) {
+        const msg = `Email rate limit exceeded for ${to} — retry after ${rl.retryAfter}s`
+        logger.warn({ to, subject, provider, retryAfter: rl.retryAfter }, 'email blocked — rate limited')
+        await recordEmailLog({ to, subject, provider, status: 'rate_limited', error: msg })
+        const err = Object.assign(new Error(msg), { code: 'EMAIL_RATE_LIMITED', retryAfter: rl.retryAfter })
+        throw err
+      }
+    }
   }
 
-  let messageId
-  let sendError = null
-
   try {
+    if (provider === 'console') {
+      logger.info({ to, subject, provider: 'console' }, 'email (console mode — not delivered)')
+      logger.debug({ to, subject, body: text || html }, 'email content')
+      return
+    }
+
     let result
 
     if (provider === 'resend') {
       const resendAdapter = require('./adapters/resend')
-      result = await resendAdapter.send({ from, to, subject, html, text: plainText, replyTo, cc, bcc, attachments })
-    } else if (provider === 'smtp' || provider === 'ses') {
-      // Both ses and smtp use the nodemailer transporter stored in state
-      const info = await smtpTransporter.sendMail({
-        from,
-        to,
-        subject,
-        html,
-        text: plainText,
-        ...(replyTo && { replyTo }),
-        ...(cc?.length && { cc }),
-        ...(bcc?.length && { bcc }),
-        ...(attachments?.length && { attachments }),
+      result = await resendAdapter.send({ from, to, subject, html, text })
+      logger.info({ to, subject, messageId: result.messageId, provider: 'resend' }, 'email sent')
+    } else if (provider === 'sendgrid') {
+      const sendgridAdapter = require('./adapters/sendgrid')
+      result = await sendgridAdapter.send({ from, to, subject, html, text })
+      logger.info({ to, subject, messageId: result.messageId, provider: 'sendgrid' }, 'email sent')
+    } else if (provider === 'smtp') {
+      const smtpAdapter = require('./adapters/smtp')
+      const transport   = getSmtpTransport()
+      result = await smtpAdapter.send({ transporter: transport, from, to, subject, html, text })
+      logger.info({ to, subject, messageId: result.messageId, provider: 'smtp' }, 'email sent')
+    } else if (provider === 'ses') {
+      const { SendEmailCommand } = require('@aws-sdk/client-ses')
+      const source = process.env.SES_FROM_EMAIL || from
+
+      const cmd = new SendEmailCommand({
+        Source: source,
+        Destination: { ToAddresses: [to] },
+        Message: {
+          Subject: { Data: subject, Charset: 'UTF-8' },
+          Body: {
+            ...(html && { Html: { Data: html, Charset: 'UTF-8' } }),
+            ...(text && { Text: { Data: text, Charset: 'UTF-8' } }),
+          },
+        },
       })
-      result = { messageId: info.messageId, provider }
+
+      const sesResult = await getSesClient().send(cmd)
+      result = { messageId: sesResult.MessageId, provider: 'ses' }
+      logger.info({ to, subject, messageId: result.messageId, provider: 'ses' }, 'email sent')
+    } else {
+      logger.error({ provider, to, subject }, 'unknown email provider — email not sent')
+      return
     }
 
-    messageId = result.messageId
-    logger.info({ to, subject, messageId, provider }, '[Email] sent')
+    // Record successful send for rate limiting
+    if (!skipChecks && RATE_LIMIT_ENABLED) {
+      await rateLimit.recordSend(to)
+    }
+    await recordEmailLog({ to, subject, provider, status: 'sent', messageId: result?.messageId })
+    return result
   } catch (err) {
-    sendError = err
-    logger.error({ err, to, subject }, '[Email] send failed')
-  }
-
-  await _trackEmail({
-    to,
-    subject,
-    template,
-    messageId: messageId ?? null,
-    provider,
-    status: sendError ? 'failed' : 'sent',
-    error: sendError ? String(sendError.message) : null,
-    userId,
-  })
-
-  if (sendError) throw sendError
-
-  return { messageId, provider }
-}
-
-// ── Internal helpers ──────────────────────────────────────────────────────────
-
-/**
- * Fire-and-forget: persist an email log record via optional callback.
- * Fails silently so email delivery is never blocked by a logging error.
- */
-async function _trackEmail({ to, subject, template, messageId, provider, status = 'sent', error = null, userId }) {
-  if (!_onEmailSent) return  // No tracking callback registered
-  
-  try {
-    await _onEmailSent({
-      to_address: to,
-      subject,
-      template: template ?? null,
-      status,
-      message_id: messageId ?? null,
-      provider: provider ?? null,
-      error: error ?? null,
-      user_id: userId ?? null,
-    })
-  } catch (_callbackErr) {
-    // Silently ignore — logging must never break email delivery
+    logger.error({ err, to, subject, provider }, 'failed to send email')
+    await recordEmailLog({ to, subject, provider, status: 'failed', error: err.message })
+    throw err
   }
 }
 
-/**
- * Register a callback to track sent emails.
- * @param {Function} callback - (emailData) => Promise<void>
- */
-function setEmailSentCallback(callback) {
-  _onEmailSent = callback
-}
+// ── Transactional email senders ───────────────────────────────────────────────
 
 /**
- * Very lightweight HTML → plain-text fallback.
+ * Send an email verification link after registration or on resend.
+ *
+ * @param {object} opts
+ * @param {string} opts.to    - Recipient email
+ * @param {string} [opts.name]  - Recipient display name
+ * @param {string} opts.token - Raw verification token (appended to APP_URL/verify-email)
  */
-function _htmlToText(html) {
-  return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
+async function sendVerificationEmail({ to, name, token }) {
+  const verifyUrl = `${APP_URL}/verify-email?token=${token}`
+
+  const html = templates.verification({ name, verifyUrl })
+
+  const text = [
+    name ? `Hi ${name},` : 'Hi,',
+    '',
+    `Verify your ${APP_NAME} account: ${verifyUrl}`,
+    '',
+    'This link expires in 24 hours.',
+    '',
+    'If you did not create an account, you can safely ignore this email.',
+  ].join('\n')
+
+  await send({ to, subject: `Verify your email — ${APP_NAME}`, html, text })
 }
 
-// ── Template senders ──────────────────────────────────────────────────────────
+/**
+ * Send a welcome email after a user verifies their address.
+ *
+ * @param {object} opts
+ * @param {string} opts.to    - Recipient email
+ * @param {string} [opts.name]  - Recipient display name
+ */
+async function sendWelcomeEmail({ to, name }) {
+  const html = templates.welcome({ name, appUrl: APP_URL, appName: APP_NAME })
 
-/** Send an email-verification link. */
-async function sendVerificationEmail({ to, name, token, userId }) {
-  const appUrl = process.env.APP_URL ?? 'http://localhost:5173'
-  const verifyUrl = `${appUrl}/verify-email?token=${token}`
-  return send({
-    to,
-    subject: 'Verify your email address',
-    html: templates.verification({ name, verifyUrl }),
-    text: `Verify your email: ${verifyUrl}`,
-    template: 'verification',
-    userId,
+  const text = [
+    name ? `Welcome, ${name}!` : 'Welcome!',
+    '',
+    `Your ${APP_NAME} account is ready.`,
+    '',
+    `Go to your dashboard: ${APP_URL}/dashboard`,
+  ].join('\n')
+
+  await send({ to, subject: `Welcome to ${APP_NAME}`, html, text })
+}
+
+/**
+ * Send a password reset link.
+ *
+ * @param {object} opts
+ * @param {string} opts.to    - Recipient email
+ * @param {string} [opts.name]  - Recipient display name
+ * @param {string} opts.token - Raw reset token (appended to APP_URL/reset-password)
+ */
+async function sendPasswordResetEmail({ to, name, token }) {
+  const resetUrl = `${APP_URL}/reset-password?token=${token}`
+
+  const html = templates.passwordReset({ name, resetUrl })
+
+  const text = [
+    name ? `Hi ${name},` : 'Hi,',
+    '',
+    `Reset your ${APP_NAME} password: ${resetUrl}`,
+    '',
+    'This link expires in 1 hour.',
+    '',
+    'If you did not request a password reset, please ignore this email.',
+  ].join('\n')
+
+  await send({ to, subject: `Reset your password — ${APP_NAME}`, html, text })
+}
+
+/**
+ * Send a team/workspace invitation email.
+ *
+ * @param {object} opts
+ * @param {string} opts.to           - Recipient email
+ * @param {string} opts.inviterName  - Display name of the person sending the invite
+ * @param {string} opts.teamName     - Name of the team/workspace being joined
+ * @param {string} opts.token        - Raw invite token (appended to APP_URL/accept-invite)
+ */
+async function sendInvitationEmail({ to, inviterName, teamName, token }) {
+  const inviteUrl = `${APP_URL}/accept-invite?token=${token}`
+
+  const html = templates.invitation({ inviterName, orgName: teamName, inviteUrl })
+
+  const text = [
+    'Hi,',
+    '',
+    `${inviterName} has invited you to join ${teamName} on ${APP_NAME}.`,
+    '',
+    `Accept the invitation: ${inviteUrl}`,
+    '',
+    'This invite link expires in 7 days.',
+    '',
+    'If you were not expecting this, please ignore this email.',
+  ].join('\n')
+
+  await send({ to, subject: `You're invited to join ${teamName} on ${APP_NAME}`, html, text })
+}
+
+/**
+ * Send a magic link (passwordless) sign-in email.
+ * The link should be single-use and short-lived (15 minutes recommended).
+ *
+ * @param {object} opts
+ * @param {string} opts.to     - Recipient email
+ * @param {string} [opts.name] - Recipient display name
+ * @param {string} opts.token  - Raw magic-link token (appended to APP_URL/auth/magic)
+ */
+async function sendMagicLinkEmail({ to, name, token }) {
+  const magicUrl = `${APP_URL}/auth/magic?token=${token}`
+
+  const html = templates.magicLink({ name, magicUrl })
+
+  const text = [
+    name ? `Hi ${name},` : 'Hi,',
+    '',
+    `Sign in to ${APP_NAME}: ${magicUrl}`,
+    '',
+    'This link expires in 15 minutes and can only be used once.',
+    '',
+    'If you did not request this, please ignore this email.',
+  ].join('\n')
+
+  await send({ to, subject: `Your sign-in link for ${APP_NAME}`, html, text })
+}
+
+/**
+ * Send a generic notification email with an optional call-to-action button.
+ * Use for product alerts, billing events, feature announcements, etc.
+ *
+ * @param {object} opts
+ * @param {string} opts.to           - Recipient email
+ * @param {string} [opts.name]       - Recipient display name
+ * @param {string} opts.title        - Notification heading (also used as email subject)
+ * @param {string} opts.message      - Notification body text (plain string, no HTML)
+ * @param {string} [opts.ctaLabel]   - CTA button label — omit to skip the button
+ * @param {string} [opts.ctaUrl]     - CTA button target URL
+ */
+async function sendNotificationEmail({ to, name, title, message, ctaLabel, ctaUrl }) {
+  const greeting = name ? `Hi ${name},<br><br>` : ''
+  const html = templates.notification({
+    title,
+    body: `${greeting}${message}`,
+    ctaLabel,
+    ctaUrl,
   })
-}
 
-/** Send a password-reset link. */
-async function sendPasswordResetEmail({ to, name, token, userId }) {
-  const appUrl = process.env.APP_URL ?? 'http://localhost:5173'
-  const resetUrl = `${appUrl}/reset-password?token=${token}`
-  return send({
-    to,
-    subject: 'Reset your password',
-    html: templates.passwordReset({ name, resetUrl }),
-    text: `Reset your password: ${resetUrl}`,
-    template: 'password_reset',
-    userId,
-  })
-}
+  const text = [
+    name ? `Hi ${name},` : 'Hi,',
+    '',
+    title,
+    '',
+    message,
+    ...(ctaLabel && ctaUrl ? ['', `${ctaLabel}: ${ctaUrl}`] : []),
+  ].join('\n')
 
-/** Send a welcome email after successful registration. */
-async function sendWelcomeEmail({ to, name, userId }) {
-  const appUrl = process.env.APP_URL ?? 'http://localhost:5173'
-  const appName = process.env.APP_NAME ?? 'App'
-  return send({
-    to,
-    subject: `Welcome to ${appName}`,
-    html: templates.welcome({ name, appUrl, appName }),
-    text: `Welcome to ${appName}! Visit ${appUrl} to get started.`,
-    template: 'welcome',
-    userId,
-  })
-}
-
-/** Send a team / workspace invitation. */
-async function sendInvitationEmail({ to, inviterName, orgName, token, userId }) {
-  const appUrl = process.env.APP_URL ?? 'http://localhost:5173'
-  const inviteUrl = `${appUrl}/accept-invite?token=${token}`
-  return send({
-    to,
-    subject: `${inviterName} invited you to ${orgName}`,
-    html: templates.invitation({ inviterName, orgName, inviteUrl }),
-    text: `${inviterName} invited you to join ${orgName}. Accept here: ${inviteUrl}`,
-    template: 'invitation',
-    userId,
-  })
-}
-
-/** Send a magic-link (passwordless) login email. */
-async function sendMagicLinkEmail({ to, name, token, userId }) {
-  const appUrl = process.env.APP_URL ?? 'http://localhost:5173'
-  const magicUrl = `${appUrl}/magic-link?token=${token}`
-  return send({
-    to,
-    subject: 'Your sign-in link',
-    html: templates.magicLink({ name, magicUrl }),
-    text: `Sign in here (link expires in 15 minutes): ${magicUrl}`,
-    template: 'magic_link',
-    userId,
-  })
-}
-
-/** Send a generic notification email with an optional CTA button. */
-async function sendNotificationEmail({ to, subject, title, body, ctaLabel, ctaUrl, userId }) {
-  return send({
-    to,
-    subject,
-    html: templates.notification({ title, body, ctaLabel, ctaUrl }),
-    text: ctaUrl ? `${title}\n\n${body}\n\n${ctaLabel ?? 'View'}: ${ctaUrl}` : `${title}\n\n${body}`,
-    template: 'notification',
-    userId,
-  })
-}
-
-/** Reset the cached transport (useful in tests or after config changes). */
-function resetTransport() {
-  _state = null
+  await send({ to, subject: `${title} — ${APP_NAME}`, html, text })
 }
 
 module.exports = {
   send,
   sendVerificationEmail,
-  sendPasswordResetEmail,
   sendWelcomeEmail,
+  sendPasswordResetEmail,
   sendInvitationEmail,
   sendMagicLinkEmail,
   sendNotificationEmail,
-  resetTransport,
-  getTransport,
-  setEmailSentCallback,
+  // Sub-modules (also available via direct require)
+  bounces,
+  rateLimiter: rateLimit,
+  webhooks:    require('./webhooks'),
+  dnsHelpers:  require('./dns-helpers'),
 }

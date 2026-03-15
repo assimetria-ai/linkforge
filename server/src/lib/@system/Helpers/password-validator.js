@@ -1,42 +1,34 @@
-// password-validator.js — shared server-side password strength validation
-// Used by: POST /api/users (register), POST /api/users/me/password, POST /api/users/password/reset
+// @system — password validation helper
+// Exports: validatePassword(password) → { valid: boolean, message?: string }
 
-const RULES = [
-  { key: 'minLength',  test: (p) => p.length >= 12,                        message: 'Password must be at least 12 characters' },
-  { key: 'uppercase',  test: (p) => /[A-Z]/.test(p),                      message: 'Password must contain at least one uppercase letter' },
-  { key: 'number',     test: (p) => /[0-9]/.test(p),                      message: 'Password must contain at least one number' },
-  { key: 'special',    test: (p) => /[^A-Za-z0-9]/.test(p),               message: 'Password must contain at least one special character' },
-]
+const MIN_LENGTH = 8
 
 /**
- * Validates a password against the minimum required rules.
- * Returns { valid: true } or { valid: false, message: string }
+ * Validate a plaintext password against the application password policy.
+ *
+ * Rules:
+ *   - At least 8 characters
+ *   - At least one uppercase letter
+ *   - At least one lowercase letter
+ *   - At least one digit
+ *
+ * @param {string} password
+ * @returns {{ valid: boolean, message: string }}
  */
 function validatePassword(password) {
-  if (typeof password !== 'string' || password.length === 0) {
-    return { valid: false, message: 'Password is required' }
+  if (typeof password !== 'string' || password.length < MIN_LENGTH) {
+    return { valid: false, message: `Password must be at least ${MIN_LENGTH} characters long` }
   }
-
-  for (const rule of RULES) {
-    if (!rule.test(password)) {
-      return { valid: false, message: rule.message }
-    }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one uppercase letter' }
   }
-
-  return { valid: true }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one lowercase letter' }
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one number' }
+  }
+  return { valid: true, message: '' }
 }
 
-/**
- * Express middleware that validates req.body.password.
- * Responds 400 with message on failure; calls next() on success.
- */
-function validatePasswordMiddleware(req, res, next) {
-  const password = req.body?.password ?? req.body?.newPassword
-  const result = validatePassword(password)
-  if (!result.valid) {
-    return res.status(400).json({ message: result.message })
-  }
-  next()
-}
-
-module.exports = { validatePassword, validatePasswordMiddleware, RULES }
+module.exports = { validatePassword }

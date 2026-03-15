@@ -58,34 +58,35 @@ const SCHEMA = [
 
   // ── Redis ─────────────────────────────────────────────────────────────────
   {
+    key: 'REDIS_ENABLED',
+    required: false,
+    default: 'true',
+    allowed: ['true', 'false'],
+    description: 'Set to "false" to disable Redis entirely (rate limiting falls back to in-memory)',
+  },
+  {
     key: 'REDIS_URL',
     required: false,
     default: 'redis://localhost:6379',
     description: 'Redis connection URL  e.g. redis://localhost:6379',
   },
 
-  // ── Auth (RS256 asymmetric key pair) ─────────────────────────────────────
-  // Provide EITHER the file path (preferred) OR the inline PEM — not both.
-  // File-based is recommended: the raw key stays out of .env files.
-  // In production use Railway secrets / Doppler / 1Password to inject the key.
+  // ── Static Assets ─────────────────────────────────────────────────────────
   {
-    key: 'JWT_PRIVATE_KEY_FILE',
+    key: 'STATIC_DIR',
     required: false,
-    description: 'Path to RSA private key PEM file (preferred) — set by npm run generate-keys',
+    description: 'Path to client build output (e.g. ../client/dist). When set, validated at startup.',
   },
+
+  // ── Auth (RS256 asymmetric key pair) ─────────────────────────────────────
   {
     key: 'JWT_PRIVATE_KEY',
-    required: false,
-    description: 'RSA private key PEM inline (with \\n line endings) — for Railway/Doppler injection',
-  },
-  {
-    key: 'JWT_PUBLIC_KEY_FILE',
-    required: false,
-    description: 'Path to RSA public key PEM file (optional alternative to JWT_PUBLIC_KEY)',
+    required: true,
+    description: 'RSA private key PEM (with \\n line endings) — used to sign JWT tokens',
   },
   {
     key: 'JWT_PUBLIC_KEY',
-    required: false,
+    required: true,
     description: 'RSA public key PEM (with \\n line endings) — used to verify JWT tokens',
   },
 
@@ -122,6 +123,19 @@ const SCHEMA = [
     key: 'SERVER_URL',
     required: false,
     description: 'Public server URL — used to build OAuth callback URIs  e.g. https://api.example.com',
+  },
+
+  // ── CSRF ───────────────────────────────────────────────────────────────────
+  // A missing or weak secret makes CSRF protection trivially bypassable in
+  // production: each process restart generates a different fallback, breaking
+  // token validation across replicas and redeploys.
+  {
+    key: 'CSRF_SECRET',
+    required: false,
+    requiredInProd: true,
+    minLength: 32,
+    minEntropy: 3.0,
+    description: 'HMAC secret for CSRF token signing (≥32 hex chars, high entropy; required in production)',
   },
 
   // ── Stripe ────────────────────────────────────────────────────────────────
@@ -199,10 +213,16 @@ const SCHEMA = [
     required: false,
     description: 'SMTP password or API key',
   },
+  // A weak or missing secret allows forging email tracking events and bypassing
+  // /api/email-logs ingest auth. Required in production; must be 32+ chars with
+  // sufficient entropy (no trivially guessable values).
   {
     key: 'EMAIL_TRACKING_SECRET',
     required: false,
-    description: 'Shared secret for the internal /api/email-logs ingest endpoint',
+    requiredInProd: true,
+    minLength: 32,
+    minEntropy: 3.0,
+    description: 'Shared secret for the internal /api/email-logs ingest endpoint (≥32 chars, high entropy; required in production)',
   },
 
   // ── AWS / S3 ──────────────────────────────────────────────────────────────
@@ -250,6 +270,20 @@ const SCHEMA = [
   },
 ]
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Compute Shannon entropy (bits per character) for a string.
+// A truly random 64-char hex string scores ~4.0; a repeated char scores 0.
+function computeShannonEntropy(str) {
+  const freq = {}
+  for (const ch of str) freq[ch] = (freq[ch] || 0) + 1
+  const len = str.length
+  return Object.values(freq).reduce((h, count) => {
+    const p = count / len
+    return h - p * Math.log2(p)
+  }, 0)
+}
+
 // ── Validation ───────────────────────────────────────────────────────────────
 
 function validate() {
@@ -274,6 +308,12 @@ function validate() {
       continue
     }
 
+    // Production-required check
+    if (spec.requiredInProd && isProd && (value === undefined || value === '')) {
+      errors.push(`  ✗  ${spec.key} — required in production but not set  (${spec.description})`)
+      continue
+    }
+
     // Skip further checks when not set and not required
     if (value === undefined || value === '') continue
 
@@ -289,57 +329,22 @@ function validate() {
 
     // Min-length check
     if (spec.minLength && value.length < spec.minLength) {
-      errors.push(`  ✗  ${spec.key} — must be at least ${spec.minLength} characters`)
+      errors.push(`  ✗  ${spec.key} — must be at least ${spec.minLength} characters (got ${value.length})`)
+    }
+
+    // Entropy check — rejects trivially guessable secrets (e.g. repeated chars, sequential runs)
+    if (spec.minEntropy != null) {
+      const entropy = computeShannonEntropy(value)
+      if (entropy < spec.minEntropy) {
+        errors.push(
+          `  ✗  ${spec.key} — entropy too low (${entropy.toFixed(2)} bits/char, minimum ${spec.minEntropy}) — use a randomly generated secret`,
+        )
+      }
     }
 
     // Prod-safety warning (e.g. still using placeholder values)
     if (isProd && spec.warnInProd && value.includes(spec.warnInProd)) {
       warnings.push(`  ⚠  ${spec.key} — looks like a placeholder value in production`)
-    }
-  }
-
-  // Ensure at least one source is configured for each JWT key
-  const hasPrivateKey = !!(process.env.JWT_PRIVATE_KEY_FILE || process.env.JWT_PRIVATE_KEY)
-  const hasPublicKey = !!(process.env.JWT_PUBLIC_KEY_FILE || process.env.JWT_PUBLIC_KEY)
-
-  if (!hasPrivateKey) {
-    errors.push(
-      '  ✗  JWT_PRIVATE_KEY_FILE (or JWT_PRIVATE_KEY) — required but not set. ' +
-      'Run: npm run generate-keys'
-    )
-  }
-  if (!hasPublicKey) {
-    errors.push(
-      '  ✗  JWT_PUBLIC_KEY_FILE (or JWT_PUBLIC_KEY) — required but not set. ' +
-      'Run: npm run generate-keys'
-    )
-  }
-
-  // In all non-test environments, verify the configured keys look like real PEM material
-  if (env !== 'test') {
-    const fs = require('fs')
-
-    function readOrInline(fileVar, inlineVar, label) {
-      const filePath = process.env[fileVar]
-      if (filePath) {
-        try {
-          return fs.readFileSync(filePath, 'utf8')
-        } catch (err) {
-          errors.push(`  ✗  ${fileVar}="${filePath}" — cannot read file: ${err.message}`)
-          return ''
-        }
-      }
-      return (process.env[inlineVar] ?? '').replace(/\\n/g, '\n')
-    }
-
-    const privateKeyPem = readOrInline('JWT_PRIVATE_KEY_FILE', 'JWT_PRIVATE_KEY')
-    const publicKeyPem = readOrInline('JWT_PUBLIC_KEY_FILE', 'JWT_PUBLIC_KEY')
-
-    if (hasPrivateKey && (!privateKeyPem.includes('BEGIN') || !privateKeyPem.includes('PRIVATE KEY'))) {
-      errors.push('  ✗  JWT_PRIVATE_KEY — must be a real PEM key in production, not a placeholder')
-    }
-    if (hasPublicKey && (!publicKeyPem.includes('BEGIN') || !publicKeyPem.includes('PUBLIC KEY'))) {
-      errors.push('  ✗  JWT_PUBLIC_KEY — must be a real PEM key in production, not a placeholder')
     }
   }
 

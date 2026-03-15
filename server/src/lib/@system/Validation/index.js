@@ -1,42 +1,27 @@
-// Zod-based request validation middleware factory
+// @system — request validation middleware
+// Minimal schema validation — no external runtime dependencies required.
+//
 // Usage:
 //   const { validate } = require('../../../lib/@system/Validation')
-//   router.post('/foo', validate({ body: FooSchema }), handler)
+//   router.post('/route', validate({ body: MySchema }), handler)
 //
-// Validates req.body, req.query, and/or req.params against Zod schemas.
-// On failure returns HTTP 400 with a structured error list.
-// On success, replaces the validated object with the parsed (coerced) value.
+// A schema must implement: schema.validate(data) => { error: string|null }
 
-const { ZodError } = require('zod')
+'use strict'
 
 /**
- * @param {{ body?: ZodSchema, query?: ZodSchema, params?: ZodSchema }} schemas
- * @returns {import('express').RequestHandler}
+ * Express middleware factory that validates req.body against a schema.
+ *
+ * @param {object} opts
+ * @param {{ validate(data: unknown): { error: string|null } }} [opts.body] - Body schema
  */
-function validate(schemas) {
-  return (req, res, next) => {
-    const errors = []
-
-    for (const [source, schema] of Object.entries(schemas)) {
-      if (!schema) continue
-      const result = schema.safeParse(req[source])
-      if (!result.success) {
-        for (const issue of result.error.issues) {
-          errors.push({
-            field: [source, ...issue.path].join('.'),
-            message: issue.message,
-          })
-        }
-      } else {
-        // Replace with parsed/coerced values (e.g. string → number coercion)
-        req[source] = result.data
-      }
+function validate({ body: schema } = {}) {
+  return function validationMiddleware(req, res, next) {
+    if (!schema) return next()
+    const result = schema.validate(req.body ?? {})
+    if (result.error) {
+      return res.status(400).json({ message: result.error })
     }
-
-    if (errors.length > 0) {
-      return res.status(400).json({ message: 'Validation failed', errors })
-    }
-
     next()
   }
 }

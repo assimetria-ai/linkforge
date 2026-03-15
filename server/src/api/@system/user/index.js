@@ -18,7 +18,7 @@ const { validatePassword } = require('../../../lib/@system/Helpers/password-vali
 const UserRepo = require('../../../db/repos/@system/UserRepo')
 const db = require('../../../lib/@system/PostgreSQL')
 const logger = require('../../../lib/@system/Logger')
-const { registerLimiter, passwordResetLimiter } = require('../../../lib/@system/RateLimit')
+const { registerLimiter, passwordResetLimiter, emailVerifyRequestLimiter, emailVerifyLimiter } = require('../../../lib/@system/RateLimit')
 const emailService = require('../../../lib/@system/Email')
 const { validate } = require('../../../lib/@system/Validation')
 const {
@@ -119,7 +119,7 @@ router.post('/users/me/password', authenticate, validate({ body: ChangePasswordB
 // ── Email Verification ────────────────────────────────────────────────────
 
 // POST /api/users/email/verify/request — resend a verification email
-router.post('/users/email/verify/request', authenticate, async (req, res, next) => {
+router.post('/users/email/verify/request', authenticate, emailVerifyRequestLimiter, async (req, res, next) => {
   try {
     // Already verified?
     if (req.user.emailVerified) {
@@ -137,7 +137,7 @@ router.post('/users/email/verify/request', authenticate, async (req, res, next) 
 })
 
 // POST /api/users/email/verify — verify email using the token from the email link
-router.post('/users/email/verify', validate({ body: VerifyEmailBody }), async (req, res, next) => {
+router.post('/users/email/verify', emailVerifyLimiter, validate({ body: VerifyEmailBody }), async (req, res, next) => {
   try {
     const { token } = req.body
 
@@ -175,7 +175,7 @@ router.post('/users/email/verify', validate({ body: VerifyEmailBody }), async (r
 
 // ── Password Reset ────────────────────────────────────────────────────────
 
-// POST /api/users/password/request — generate a reset token and (conceptually) send an email
+// POST /api/users/password/request — generate a reset token and send a password reset email
 router.post('/users/password/request', passwordResetLimiter, validate({ body: PasswordResetRequestBody }), async (req, res, next) => {
   try {
     const { email } = req.body

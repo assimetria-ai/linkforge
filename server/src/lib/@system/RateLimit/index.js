@@ -65,12 +65,13 @@ class RedisStore {
  * Build a rate limiter middleware.
  *
  * @param {object} opts
- * @param {number}  opts.windowMs   - Time window in ms
- * @param {number}  opts.max        - Max requests per window
- * @param {string}  opts.prefix     - Redis key prefix (must be unique per limiter)
- * @param {string}  [opts.message]  - Error message returned on limit exceeded
+ * @param {number}   opts.windowMs      - Time window in ms
+ * @param {number}   opts.max           - Max requests per window
+ * @param {string}   opts.prefix        - Redis key prefix (must be unique per limiter)
+ * @param {string}   [opts.message]     - Error message returned on limit exceeded
+ * @param {Function} [opts.keyGenerator] - Custom key function (req) => string
  */
-function createLimiter({ windowMs, max, prefix, message = 'Too many requests, please try again later.' }) {
+function createLimiter({ windowMs, max, prefix, message = 'Too many requests, please try again later.', keyGenerator }) {
   const store = redisReady() ? new RedisStore({ prefix, windowMs }) : undefined
 
   return rateLimit({
@@ -80,6 +81,7 @@ function createLimiter({ windowMs, max, prefix, message = 'Too many requests, pl
     legacyHeaders: false,
     message: { message },
     store,                    // undefined → default in-memory store
+    keyGenerator,             // undefined → default req.ip
     // Skip rate limiting in test and development environments
     skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development',
     handler(req, res, next, options) {
@@ -118,6 +120,23 @@ const passwordResetLimiter = createLimiter({
   message: 'Too many password reset attempts. Please try again later.',
 })
 
+/** Email verify/request (resend): 5 per hour per authenticated user */
+const emailVerifyRequestLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  prefix: 'rl:email-verify-request:',
+  message: 'Too many verification email requests. Please try again later.',
+  keyGenerator: (req) => req.user?.id ?? req.ip,
+})
+
+/** Email verify (token submission): 20 per minute per IP */
+const emailVerifyLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  max: 20,
+  prefix: 'rl:email-verify:',
+  message: 'Too many email verification attempts. Please try again later.',
+})
+
 /** Refresh token rotation: 30 per minute — prevents brute-force token rotation */
 const refreshLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -142,6 +161,15 @@ const uploadLimiter = createLimiter({
   message: 'Too many upload requests. Please try again later.',
 })
 
+/** Per-user daily upload quota: 50 uploads per day — prevents storage exhaustion */
+const dailyUploadQuotaLimiter = createLimiter({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 50,
+  prefix: 'rl:upload-daily:',
+  message: 'Daily upload quota exceeded. Please try again tomorrow.',
+  keyGenerator: (req) => `user:${req.user?.id ?? req.ip}`,
+})
+
 /** Integration test: 10 per minute — prevents abuse of external service test endpoints */
 const integrationTestLimiter = createLimiter({
   windowMs: 60 * 1000,
@@ -150,93 +178,25 @@ const integrationTestLimiter = createLimiter({
   message: 'Too many integration test requests. Please try again later.',
 })
 
-/** General API rate limiter: 100 requests per minute — baseline DoS protection for all endpoints */
-const apiLimiter = createLimiter({
+/** Public blog read: 100 requests per minute per IP — prevents scraping/enumeration */
+const blogReadLimiter = createLimiter({
   windowMs: 60 * 1000,
   max: 100,
-  prefix: 'rl:api:',
-  message: 'Too many requests. Please slow down and try again later.',
-})
-
-/** AI chat endpoints: 20 per minute — prevents cost abuse on expensive LLM API calls */
-const aiChatLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 20,
-  prefix: 'rl:ai-chat:',
-  message: 'AI chat rate limit exceeded. Please slow down.',
-})
-
-/** AI image generation: 5 per hour — DALL-E costs $0.04-0.12 per image */
-const aiImageLimiter = createLimiter({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  prefix: 'rl:ai-image:',
-  message: 'Image generation rate limit exceeded. Please try again later.',
-})
-
-/** TOTP setup: 5 per hour — prevents QR code generation abuse */
-const totpSetupLimiter = createLimiter({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  prefix: 'rl:totp-setup:',
-  message: 'Too many 2FA setup attempts. Please try again later.',
-})
-
-/** TOTP enable/disable: 5 per 10 minutes — prevents brute-force on 6-digit codes */
-const totpEnableLimiter = createLimiter({
-  windowMs: 10 * 60 * 1000,
-  max: 5,
-  prefix: 'rl:totp-enable:',
-  message: 'Too many 2FA attempts. Please try again later.',
-})
-
-/** Admin read operations: 60 per minute — prevents abuse of expensive queries */
-const adminReadLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 60,
-  prefix: 'rl:admin-read:',
-  message: 'Admin rate limit exceeded.',
-})
-
-/** Admin write operations: 10 per minute — tighter control on state-changing operations */
-const adminWriteLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 10,
-  prefix: 'rl:admin-write:',
-  message: 'Admin write rate limit exceeded.',
-})
-
-/** Email test endpoint: 10 per hour — prevents email bombing via admin test endpoint */
-const emailTestLimiter = createLimiter({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
-  prefix: 'rl:email-test:',
-  message: 'Too many test email requests.',
-})
-
-/** OAuth endpoints: 20 per minute — prevents redirect loops and state brute-forcing */
-const oauthLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 20,
-  prefix: 'rl:oauth:',
-  message: 'OAuth rate limit exceeded.',
+  prefix: 'rl:blog-read:',
+  message: 'Too many requests to blog API. Please try again later.',
 })
 
 module.exports = {
-  apiLimiter,
+  createLimiter,
   loginLimiter,
   registerLimiter,
   passwordResetLimiter,
+  emailVerifyRequestLimiter,
+  emailVerifyLimiter,
   refreshLimiter,
   apiKeyLimiter,
   uploadLimiter,
+  dailyUploadQuotaLimiter,
   integrationTestLimiter,
-  aiChatLimiter,
-  aiImageLimiter,
-  totpSetupLimiter,
-  totpEnableLimiter,
-  adminReadLimiter,
-  adminWriteLimiter,
-  emailTestLimiter,
-  oauthLimiter,
+  blogReadLimiter,
 }
