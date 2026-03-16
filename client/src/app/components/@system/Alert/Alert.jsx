@@ -24,18 +24,22 @@ const alertVariants = cva(
 )
 
 const ICONS = {
-  default: Info,
+  default: AlertCircle,
   info: Info,
   success: CheckCircle2,
   warning: AlertTriangle,
   destructive: AlertCircle,
 }
 
-
-export function Alert({ className, variant = 'default', title, dismissible, children, ...props }) {
+export function Alert({ className, variant = 'default', title, dismissible, onClose, children, ...props }) {
   const [dismissed, setDismissed] = useState(false)
   if (dismissed) return null
   const Icon = ICONS[variant ?? 'default']
+
+  function handleDismiss() {
+    setDismissed(true)
+    if (onClose) onClose()
+  }
 
   return (
     <div className={cn(alertVariants({ variant }), className)} role="alert" {...props}>
@@ -45,13 +49,13 @@ export function Alert({ className, variant = 'default', title, dismissible, chil
         {title && <p className="font-semibold text-sm sm:text-sm">{title}</p>}
         {children && <div className="text-sm sm:text-sm opacity-90">{children}</div>}
       </div>
-      {dismissible && (
+      {(dismissible || onClose) && (
         <button
-          onClick={() => setDismissed(true)}
+          onClick={handleDismiss}
           className={cn(
             'flex-shrink-0 opacity-70 hover:opacity-100 active:opacity-100 transition-opacity',
-            'touch-target min-h-touch min-w-touch flex items-center justify-center', // WCAG 2.5.5 compliant
-            '-mr-2 sm:-mr-1', // Adjust positioning for larger mobile touch target
+            'touch-target min-h-touch min-w-touch flex items-center justify-center',
+            '-mr-2 sm:-mr-1',
           )}
           aria-label="Dismiss alert"
         >

@@ -13,6 +13,7 @@ const express = require('express')
 const router = express.Router()
 const crypto = require('crypto')
 const bcrypt = require('bcryptjs')
+const sanitizeHtml = require('sanitize-html')
 const { authenticate } = require('../../../lib/@system/Helpers/auth')
 const { validatePassword } = require('../../../lib/@system/Helpers/password-validator')
 const UserRepo = require('../../../db/repos/@system/UserRepo')
@@ -59,8 +60,12 @@ router.post('/users', registerLimiter, validate({ body: RegisterBody }), async (
     const existing = await UserRepo.findByEmail(email)
     if (existing) return res.status(409).json({ message: 'Email already in use' })
 
+    const sanitizedName = typeof name === 'string'
+      ? sanitizeHtml(name, { allowedTags: [], allowedAttributes: {} }).trim() || null
+      : null
+
     const password_hash = await bcrypt.hash(password, 12)
-    const user = await UserRepo.create({ email, name, password_hash })
+    const user = await UserRepo.create({ email, name: sanitizedName, password_hash })
 
     // Send verification email asynchronously — don't block registration response
     setImmediate(async () => {
@@ -90,7 +95,10 @@ router.get('/users/me', authenticate, (req, res) => {
 router.patch('/users/me', authenticate, validate({ body: UpdateProfileBody }), async (req, res, next) => {
   try {
     const { name } = req.body
-    const updated = await UserRepo.update(req.user.id, { name: name?.trim() })
+    const sanitizedName = typeof name === 'string'
+      ? sanitizeHtml(name, { allowedTags: [], allowedAttributes: {} }).trim()
+      : name
+    const updated = await UserRepo.update(req.user.id, { name: sanitizedName })
     res.json({ user: updated })
   } catch (err) {
     next(err)

@@ -13,6 +13,9 @@ function isOriginAllowed(origin) {
   // always sends an Origin header on cross-origin requests, so absence of Origin means
   // CORS enforcement doesn't apply. Allow these in all environments.
   // Production healthchecks still use /healthz (registered before CORS middleware).
+  //
+  // Also handle the string 'undefined' — Railway CDN edge proxies (Fastly/Varnish) may
+  // serialise a missing Origin header as the literal string 'undefined'.
   if (!origin || origin === 'undefined') return true
 
   // Exact match only — wildcard subdomain matching removed (SEC-1500: attacker-registered subdomain risk)
@@ -21,22 +24,32 @@ function isOriginAllowed(origin) {
   return false
 }
 
-const corsOptions = {
-  origin(origin, callback) {
-    if (isOriginAllowed(origin)) {
-      callback(null, true)
-    } else {
-      // Use a proper CORS rejection (403) instead of Error (which Express turns into 500)
-      const err = new Error(`CORS: origin '${origin}' not allowed`)
-      err.status = 403
-      callback(err)
-    }
-  },
+/**
+ * CORS middleware with inline rejection handling.
+ * Rejections return 403 directly without going through Express error handler.
+ * This avoids the 500 status code that callback(err) can produce when the error
+ * flows through middleware chains that strip/ignore err.status.
+ */
+const corsHandler = cors({
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token'],
   exposedHeaders: ['X-Total-Count', 'X-Request-Id'],
   maxAge: 600, // preflight cache 10 min
+})
+
+function corsMiddleware(req, res, next) {
+  const origin = req.headers.origin
+
+  if (isOriginAllowed(origin)) {
+    // Allowed — delegate to cors package for proper header setting
+    return corsHandler(req, res, next)
+  }
+
+  // Rejection: respond directly with 403 — never pass to next(err)
+  // This prevents Express error handler from converting it to 500
+  res.status(403).json({ message: `CORS: origin '${origin}' not allowed` })
 }
 
-module.exports = cors(corsOptions)
+module.exports = corsMiddleware

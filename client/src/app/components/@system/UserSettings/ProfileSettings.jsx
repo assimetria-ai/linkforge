@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Camera, Mail, User as UserIcon, Trash2 } from 'lucide-react'
 import { SettingsSection, SettingsRow } from './UserSettings'
 import { Button } from '../Button/Button'
-import { Form, FormField, FormLabel, FormInput, FormTextarea } from '../Form/Form'
+import { Form, FormField, FormLabel, Input as FormInput, Textarea as FormTextarea } from '../Form/Form'
 import { Avatar } from '../Avatar/Avatar'
 import { cn } from '@/app/lib/@system/utils'
 
@@ -180,5 +180,3 @@ export function ProfileSettings({ user, onUpdate }) {
     </div>
   )
 }
-
-// Avatar component imported from @system above

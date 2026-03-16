@@ -1,29 +1,47 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  Linkforge — Root Dockerfile  (production-ready)
+#  Product Template — Root Dockerfile  (multi-stage, production-ready)
 #
-#  Uses pre-built client/dist to avoid webpack build errors on Railway.
-#  The client/dist is built locally and committed to the repo.
-#  TODO: Restore multi-stage client build once @system webpack errors are fixed.
+#  Single container: nginx (port 80) fronts the Node.js backend (port 4000).
+#    Stage 1 (client-build): webpack frontend → client/dist/
+#    Stage 2 (server-deps):  Node.js production dependencies
+#    Stage 3 (runner):       nginx + Node.js + tini
+#
+#  Usage:
+#    docker build -t product-template .
+#    docker run -p 80:80 --env-file .env product-template
+#
+#  Build targets:
+#    --target client-build  → only webpack build (CI cache layer)
+#    --target server-deps   → only production server deps (CI cache layer)
+#    --target runner        → final production image (default)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Shared base ───────────────────────────────────────────────────────────────
-FROM node:20-alpine AS base
-ARG CACHEBUST=6
-RUN apk add --no-cache tini postgresql-client
+# ── Stage 1: client build ─────────────────────────────────────────────────────
+FROM node:20-alpine AS client-build
+WORKDIR /app/client
 
-# ── Stage 1: server production dependencies ───────────────────────────────────
-FROM base AS server-deps
+# Manifests first → better layer caching
+COPY client/package*.json ./
+RUN npm ci --ignore-scripts
+
+COPY client/ ./
+
+RUN npm run build
+
+# ── Stage 2: server production dependencies ───────────────────────────────────
+FROM node:20-alpine AS server-deps
 WORKDIR /app/server
+
 COPY server/package*.json ./
 RUN npm ci --omit=dev --ignore-scripts
 
-# ── Stage 2: final runner ─────────────────────────────────────────────────────
-FROM base AS runner
+# ── Stage 3: final runner ─────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+ARG CACHEBUST=1
+RUN apk add --no-cache tini nginx postgresql-client
 
 WORKDIR /app
-
-# Non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Server production deps
 COPY --from=server-deps /app/server/node_modules ./server/node_modules
@@ -32,24 +50,24 @@ COPY --from=server-deps /app/server/node_modules ./server/node_modules
 COPY server/src/ ./server/src/
 COPY server/package*.json ./server/
 
-# Pre-built frontend assets (using committed client/dist to bypass webpack errors)
-COPY client/dist ./server/public
+# Built frontend assets → nginx serves from here
+COPY --from=client-build /app/client/dist /usr/share/nginx/html
 
-# Favicon files
-COPY client/public/favicon* ./server/public/
-# Landing page — served as public homepage for unauthenticated visitors at /
-COPY server/landing.html ./server/public/landing.html
-# Logo files for landing page
-COPY client/public/logo*.png ./server/public/
+# Landing page
+COPY landing.html /usr/share/nginx/html/landing.html
 
-RUN chown -R appuser:appgroup /app
-USER appuser
+# nginx config — Alpine uses http.d/ (not conf.d/) for server blocks
+RUN rm -f /etc/nginx/http.d/default.conf 2>/dev/null || true
+COPY nginx.production.conf /etc/nginx/http.d/default.conf
+
+# Startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 ENV NODE_ENV=production \
-    PORT=4000 \
-    STATIC_DIR=/app/server/public
+    PORT=3001
 
-EXPOSE 4000
+EXPOSE 80
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "server/src/db/migrations/@system/start.js"]
+CMD ["/start.sh"]
