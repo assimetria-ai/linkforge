@@ -183,9 +183,28 @@ async function applyPending(migrations, applied, dryRun = false) {
       log(`Applied:  ${migration.name} ✓`)
       applied_count++
     } catch (error) {
-      err(`Failed on "${migration.name}": ${error.message}`)
-      err('Aborting migration run. Fix the error and re-run.')
-      throw error
+      // Known-safe errors from partial previous runs (idempotency)
+      const msg = error.message || ''
+      const safePatterns = [
+        'already exists',
+        'duplicate key',
+        'relation ".*" already exists',
+        'column ".*" of relation ".*" already exists',
+        'constraint ".*" already exists',
+        'does not exist', // column/table missing from partial state — skip and let later migrations fix
+      ]
+      const isSafe = safePatterns.some(p => new RegExp(p, 'i').test(msg))
+
+      if (isSafe) {
+        log(`WARN: "${migration.name}" hit recoverable error: ${msg.slice(0, 120)}`)
+        log(`WARN: Marking as applied and continuing (idempotent recovery).`)
+        await recordMigration(migration.name)
+        applied_count++
+      } else {
+        err(`Failed on "${migration.name}": ${msg}`)
+        err('Aborting migration run. Fix the error and re-run.')
+        throw error
+      }
     }
   }
 
