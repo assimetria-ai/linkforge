@@ -45,6 +45,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically update updated_at
+DROP TRIGGER IF EXISTS trigger_custom_domains_updated_at ON custom_domains;
 CREATE TRIGGER trigger_custom_domains_updated_at
   BEFORE UPDATE ON custom_domains
   FOR EACH ROW

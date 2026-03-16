@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom'
 import { Shield } from 'lucide-react'
 import { Header } from '../../../components/@system/Header/Header'
-import { info } from '../../../../config/@system/info'
+import { info } from '@/config'
 
 // @custom — set the effective date when deploying
 const EFFECTIVE_DATE = 'January 1, 2025'

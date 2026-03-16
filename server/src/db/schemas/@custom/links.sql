@@ -39,6 +39,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically update updated_at
+DROP TRIGGER IF EXISTS trigger_links_updated_at ON links;
 CREATE TRIGGER trigger_links_updated_at
   BEFORE UPDATE ON links
   FOR EACH ROW

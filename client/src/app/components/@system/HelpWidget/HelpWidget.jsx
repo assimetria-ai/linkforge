@@ -9,7 +9,7 @@ import { HelpCircle, X, Search, Book, MessageCircle, Mail, ExternalLink } from '
 import { Button } from '../ui/button'
 import { Input } from '../Form/Form'
 import { cn } from '@/app/lib/@system/utils'
-import { info } from '@/config/@system/info'
+import { info } from '@/config'
 
 // @custom — Replace with real help articles from your knowledge base
 const HELP_ARTICLES = [

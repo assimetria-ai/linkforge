@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { Header } from '../../../components/@system/Header/Header'
-import { info } from '../../../../config/@system/info'
+import { info } from '@/config'
 
 const LAST_UPDATED = 'February 26, 2026'
 

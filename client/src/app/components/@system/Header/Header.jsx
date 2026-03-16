@@ -5,10 +5,10 @@ import { LogOut, Settings, Shield, Menu, X } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { Button } from '../ui/button'
 import { useAuthContext } from '@/app/store/@system/auth'
-import { info } from '@/config/@system/info'
+import { info } from '@/config'
 import { cn } from '@/app/lib/@system/utils'
 
-export function Header({ className }) {
+export function Header({ className = '' }) {
   const { user, isAuthenticated, logout } = useAuthContext()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)

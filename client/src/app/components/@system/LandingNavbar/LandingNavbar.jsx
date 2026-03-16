@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Menu, X, Zap } from 'lucide-react'
 import { Button } from '../ui/button'
 import { useAuthContext } from '@/app/store/@system/auth'
-import { info } from '@/config/@system/info'
+import { info } from '@/config'
 import { cn } from '@/app/lib/@system/utils'
 
 const NAV_LINKS = [

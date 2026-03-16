@@ -7,7 +7,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuthContext } from '@/app/store/@system/auth'
 import { Spinner } from '../../../components/@system/Loading/Spinner'
-import { info } from '@/config/@system/info'
+import { info } from '@/config'
 
 // Lazy-load the OnboardingWizard so framer-motion is NOT bundled into this chunk
 // for unauthenticated users who will just be redirected to /auth.

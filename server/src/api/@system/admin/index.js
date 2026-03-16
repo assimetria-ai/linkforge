@@ -143,4 +143,7 @@ router.get('/admin/subscriptions/stats', ...readGuard, async (req, res, next) =>
   }
 })
 
+// ── Financials sub-router ─────────────────────────────────────────────────
+router.use(require('./financials'))
+
 module.exports = router

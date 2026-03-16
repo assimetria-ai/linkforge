@@ -1,8 +1,7 @@
-export interface ApiClient {
-  get<T = any>(path: string): Promise<T>
-  post<T = any>(path: string, body?: any): Promise<T>
-  patch<T = any>(path: string, body?: any): Promise<T>
-  delete<T = any>(path: string): Promise<T>
+// Type declarations for api.js — adds generics to all methods.
+export declare const api: {
+  get<T = unknown>(path: string): Promise<T>
+  post<T = unknown>(path: string, body?: unknown): Promise<T>
+  patch<T = unknown>(path: string, body?: unknown): Promise<T>
+  delete<T = unknown>(path: string): Promise<T>
 }
-
-export const api: ApiClient

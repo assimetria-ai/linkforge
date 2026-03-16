@@ -30,12 +30,41 @@ module.exports = {
       );
     `)
 
-    // Indexes for performance
+    // Add missing columns if table existed without them (idempotent)
     await db.none(`
-      CREATE INDEX idx_file_uploads_user_id ON file_uploads(user_id) WHERE deleted_at IS NULL;
-      CREATE INDEX idx_file_uploads_deleted_at ON file_uploads(deleted_at);
-      CREATE INDEX idx_file_uploads_created_at ON file_uploads(created_at);
-      CREATE INDEX idx_file_uploads_folder ON file_uploads(folder) WHERE deleted_at IS NULL;
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'file_uploads' AND column_name = 'folder'
+        ) THEN
+          ALTER TABLE file_uploads ADD COLUMN folder VARCHAR(200) DEFAULT 'uploads';
+        END IF;
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'file_uploads' AND column_name = 'deleted_at'
+        ) THEN
+          ALTER TABLE file_uploads ADD COLUMN deleted_at TIMESTAMPTZ;
+        END IF;
+      END $$;
+    `)
+
+    // Indexes for performance (each conditional on column existence)
+    await db.none(`
+      CREATE INDEX IF NOT EXISTS idx_file_uploads_user_id ON file_uploads(user_id) WHERE deleted_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_file_uploads_deleted_at ON file_uploads(deleted_at);
+      CREATE INDEX IF NOT EXISTS idx_file_uploads_created_at ON file_uploads(created_at);
+    `)
+
+    // folder index separately — only if column exists
+    await db.none(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'file_uploads' AND column_name = 'folder'
+        ) THEN
+          EXECUTE 'CREATE INDEX IF NOT EXISTS idx_file_uploads_folder ON file_uploads(folder) WHERE deleted_at IS NULL';
+        END IF;
+      END $$;
     `)
 
     // View for user storage usage
@@ -68,7 +97,7 @@ module.exports = {
 
     // Index for lookups
     await db.none(`
-      CREATE INDEX idx_storage_quotas_user_id ON storage_quotas(user_id);
+      CREATE INDEX IF NOT EXISTS idx_storage_quotas_user_id ON storage_quotas(user_id);
     `)
 
     // Function to get user's current storage usage and quota

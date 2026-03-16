@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- LinkForge favicon — compact icon. Base color: #3A8BFD background, white icon -->
+  <!-- Rounded square background -->
+  <rect width="48" height="48" rx="10" fill="#3A8BFD"/>
+  <!-- Upper chain link -->
+  <g transform="rotate(-45 16 17)">
+    <rect x="4" y="13" width="24" height="8" rx="4" fill="white"/>
+  </g>
+  <!-- Lower chain link -->
+  <g transform="rotate(-45 32 31)">
+    <rect x="20" y="27" width="24" height="8" rx="4" fill="white"/>
+  </g>
+  <!-- Forge spark -->
+  <rect x="23" y="23" width="2.5" height="2.5" rx="0.3" transform="rotate(45 24.25 24.25)" fill="white" opacity="0.5"/>
+</svg>

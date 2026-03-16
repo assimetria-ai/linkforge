@@ -2,15 +2,18 @@ const cors = require('cors')
 
 const ALLOWED_ORIGINS = [
   process.env.APP_URL,
+  process.env.RAILWAY_PUBLIC_DOMAIN && `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`,
   'http://localhost:5173',
   'http://localhost:3000',
 ].filter(Boolean)
 
 function isOriginAllowed(origin) {
-  // Allow no-origin requests (curl, Postman, server-to-server) in development and test.
-  // In production, no-origin requests are denied to prevent CORS bypass via cookie-based auth.
-  // Production healthchecks must use the /healthz path, which is registered before CORS middleware.
-  if (!origin) return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+  // Requests without an Origin header are NOT cross-origin browser requests — they come
+  // from curl, Postman, server-to-server calls, or same-origin navigation. The browser
+  // always sends an Origin header on cross-origin requests, so absence of Origin means
+  // CORS enforcement doesn't apply. Allow these in all environments.
+  // Production healthchecks still use /healthz (registered before CORS middleware).
+  if (!origin || origin === 'undefined') return true
 
   // Exact match only — wildcard subdomain matching removed (SEC-1500: attacker-registered subdomain risk)
   if (ALLOWED_ORIGINS.includes(origin)) return true
@@ -23,7 +26,10 @@ const corsOptions = {
     if (isOriginAllowed(origin)) {
       callback(null, true)
     } else {
-      callback(new Error(`CORS: origin '${origin}' not allowed`))
+      // Use a proper CORS rejection (403) instead of Error (which Express turns into 500)
+      const err = new Error(`CORS: origin '${origin}' not allowed`)
+      err.status = 403
+      callback(err)
     }
   },
   credentials: true,

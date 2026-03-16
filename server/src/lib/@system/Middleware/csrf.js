@@ -40,11 +40,38 @@ const {
 })
 
 /**
+ * Routes exempt from CSRF validation.
+ * Auth routes (register/login/forgot-password) are called before the client
+ * has a session, so CSRF protection doesn't apply — there's no cookie to steal.
+ * Webhook routes receive server-to-server calls that can't carry CSRF tokens.
+ */
+const CSRF_EXEMPT_PATHS = [
+  '/api/auth/register',
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/refresh',
+  '/api/sessions',
+  '/api/sessions/refresh',
+  '/api/sessions/register',
+  '/api/webhook',
+  '/api/stripe/webhook',
+  '/api/payments/webhook',
+]
+
+/**
  * CSRF protection middleware that validates tokens on state-changing requests
  */
 const csrfProtection = (req, res, next) => {
   // Skip CSRF validation in test/development environments if needed
   if (process.env.NODE_ENV === 'test' || process.env.SKIP_CSRF === 'true') {
+    return next()
+  }
+
+  // Skip CSRF for auth and webhook routes (no session to protect)
+  // Check both full path (app-level mount) and stripped path (router-level mount)
+  const fullPath = req.originalUrl || req.path
+  if (CSRF_EXEMPT_PATHS.some(p => fullPath.startsWith(p) || req.path.startsWith(p) || req.path.startsWith(p.replace('/api', '')))) {
     return next()
   }
 
