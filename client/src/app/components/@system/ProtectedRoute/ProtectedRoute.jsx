@@ -1,16 +1,21 @@
 // @system — route guard that redirects unauthenticated users to /login
-// Also redirects new users (onboarding not complete) to /onboarding.
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthContext } from '@/app/store/@system/auth'
 import { Spinner } from '../Loading/Spinner'
 import { EmailVerificationBanner } from '../EmailVerificationBanner/EmailVerificationBanner'
 
+function resolveOnboardingPath(status) {
+  if (!status.has_brand) return '/app/onboarding/brand'
+  if (!status.has_subscription) return '/app/onboarding/plan'
+  if (!status.completed) return '/app/onboarding/setup'
+  return null
+}
 
 export function ProtectedRoute({ children, role }) {
-  const { user, loading, isAuthenticated } = useAuthContext()
+  const { user, loading, onboardingStatus, onboardingLoading, isAuthenticated } = useAuthContext()
   const location = useLocation()
 
-  if (loading) {
+  if (loading || onboardingLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Spinner />
@@ -22,9 +27,15 @@ export function ProtectedRoute({ children, role }) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Redirect new users to onboarding wizard before accessing the app
-  if (user && user.onboardingCompleted === false) {
-    return <Navigate to="/onboarding" replace />
+  const onboardingTarget = resolveOnboardingPath(onboardingStatus)
+  const isOnboardingRoute = location.pathname.startsWith('/app/onboarding')
+
+  if (onboardingTarget && location.pathname !== onboardingTarget) {
+    return <Navigate to={onboardingTarget} replace />
+  }
+
+  if (!onboardingTarget && isOnboardingRoute) {
+    return <Navigate to="/app" replace />
   }
 
   if (role === 'admin' && user?.role !== 'admin') {

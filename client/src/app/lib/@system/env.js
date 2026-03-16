@@ -1,5 +1,5 @@
 // @system — client-side environment variable validation
-// Called once at app startup (main.tsx). Logs warnings for missing vars
+// Called once at app startup (main.jsx). Logs warnings for missing vars
 // and throws in production to prevent silent misconfiguration.
 //
 // Usage:

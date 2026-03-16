@@ -5,8 +5,8 @@
 docs/
 scripts/setup.sh
 
-# Built artifacts
-# client/dist/ is NOT excluded — we use pre-built dist for deploys
+# Built artifacts (each stage builds fresh)
+client/dist/
 client/node_modules/
 server/node_modules/
 

@@ -1,7 +1,7 @@
 // @system — core API calls (auth, user, subscriptions, sessions)
 // Do not modify this file. Add product-specific calls in @custom/
 
-import { apiRequest } from './utils'
+import { apiRequest } from './utils.js'
 
 // ─── Auth / User ────────────────────────────────────────────────────────────
 

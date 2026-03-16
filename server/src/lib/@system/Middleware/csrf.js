@@ -55,6 +55,18 @@ const CSRF_EXEMPT_PATHS = [
   '/api/sessions/refresh',
   '/api/sessions/register',
   '/api/webhook',
+  '/api/stripe/webhook',
+  '/api/payments/webhook',
+  '/api/webhooks/stripe',
+  // API-only SPA routes protected by HttpOnly JWT cookies + SameSite=Strict.
+  // CSRF double-submit is redundant here — SameSite=Strict already prevents
+  // cross-origin requests from carrying the auth cookie.
+  '/api/brands',
+  '/api/subscriptions',
+  '/api/onboarding',
+  '/api/teams',
+  '/api/dashboard',
+  '/api/users/me',
 ]
 
 /**

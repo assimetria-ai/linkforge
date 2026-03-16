@@ -7,13 +7,18 @@
  * library (e.g. Phosphor, Heroicons) only requires changing this one file.
  *
  * Usage:
- *   import { Check, Loader2 } from '@/app/components/@system/icons'
+ *   import { Check, Loader2, type IconType } from '@/app/components/@system/icons'
  *
  * To swap icon libraries:
  *   1. Install the new library
  *   2. Update the imports in this file to point to the new library
- *   3. Map icon names (see comments below for mapping hints)
+ *   3. Map icon names as needed (see comments below for mapping hints)
  */
+
+export type {
+  LucideIcon as IconType,
+  LucideProps as IconProps,
+} from 'lucide-react'
 
 // ─── Navigation & Layout ─────────────────────────────────────────────────────
 export {
@@ -23,7 +28,8 @@ export {
   ArrowRight,
   ChevronDown,
   ChevronLeft,
-  ChevronUp } from 'lucide-react'
+  ChevronUp,
+} from 'lucide-react'
 
 // ─── Actions & Controls ──────────────────────────────────────────────────────
 export {
@@ -37,7 +43,8 @@ export {
   Send,
   Trash2,
   Upload,
-  X } from 'lucide-react'
+  X,
+} from 'lucide-react'
 
 // ─── Status & Feedback ───────────────────────────────────────────────────────
 export {
@@ -49,7 +56,8 @@ export {
   Loader2,
   ShieldCheck,
   ShieldOff,
-  XCircle } from 'lucide-react'
+  XCircle,
+} from 'lucide-react'
 
 // ─── Content & Media ─────────────────────────────────────────────────────────
 export {
@@ -62,7 +70,8 @@ export {
   MessageSquare,
   MapPin,
   Monitor,
-  Star } from 'lucide-react'
+  Star,
+} from 'lucide-react'
 
 // ─── Product & Business ──────────────────────────────────────────────────────
 export {
@@ -80,7 +89,8 @@ export {
   Sparkles,
   Target,
   Users,
-  Zap } from 'lucide-react'
+  Zap,
+} from 'lucide-react'
 
 // ─── Communication ───────────────────────────────────────────────────────────
 export { Mail } from 'lucide-react'
@@ -90,4 +100,5 @@ export {
   Github,
   Linkedin,
   Twitter,
-  Youtube } from 'lucide-react'
+  Youtube,
+} from 'lucide-react'

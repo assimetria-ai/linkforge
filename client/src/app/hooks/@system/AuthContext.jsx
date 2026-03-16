@@ -13,7 +13,7 @@ const AuthContext = createContext({
  * @system — Wraps the app and provides auth state globally.
  * Fetches the session once; all children share the result.
  *
- * Usage: wrap <App /> with <AuthProvider> in main.tsx or App.tsx.
+ * Usage: wrap <App /> with <AuthProvider> in main.jsx or App.jsx.
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
