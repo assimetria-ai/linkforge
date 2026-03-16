@@ -1,6 +1,3 @@
-// Require logger first so it's available in pg-promise callbacks
-const logger = require('../Logger')
-
 const pgp = require('pg-promise')({
   /**
    * Called when a new client is acquired from the pool.
@@ -26,6 +23,9 @@ const pgp = require('pg-promise')({
     logger.error({ err, query: e?.query }, 'PostgreSQL error')
   },
 })
+
+// Require logger after pgp is initialised (avoids circular-require issues during boot)
+const logger = require('../Logger')
 
 // ── Pool configuration ─────────────────────────────────────────────────────
 

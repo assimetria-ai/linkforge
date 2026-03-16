@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { FileText, ArrowLeft } from 'lucide-react'
 import { Button } from '../../../components/@system/ui/button'
 import { Header } from '../../../components/@system/Header/Header'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 const EFFECTIVE_DATE = 'January 1, 2025'
 

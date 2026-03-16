@@ -1,5 +1,5 @@
 // @system — Stripe checkout + billing portal API calls
-import { api } from '../../lib/@system/api.js'
+import { api } from '../../lib/@system/api'
 
 
 

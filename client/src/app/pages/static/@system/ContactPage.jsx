@@ -5,7 +5,7 @@ import { Mail, MessageSquare, MapPin, Clock, Send } from 'lucide-react'
 import { Header } from '../../../components/@system/Header/Header'
 import { Card, CardContent } from '../../../components/@system/Card/Card'
 import { Button } from '../../../components/@system/ui/button'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 // ── Contact info cards ────────────────────────────────────────────────────────
 

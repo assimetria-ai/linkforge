@@ -48,7 +48,6 @@ const templates = require('./templates')
 // ── Transport / adapter state ─────────────────────────────────────────────────
 
 let _state = null  // { provider, smtpTransporter? }
-let _onEmailSent = null  // optional callback: (emailData) => Promise<void>
 
 /**
  * Detect the active provider and initialise adapters once.
@@ -219,14 +218,13 @@ async function send({ to, subject, html, text, template, userId, replyTo, cc, bc
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /**
- * Fire-and-forget: persist an email log record via optional callback.
+ * Fire-and-forget: persist an email log record via direct DB write.
  * Fails silently so email delivery is never blocked by a logging error.
  */
 async function _trackEmail({ to, subject, template, messageId, provider, status = 'sent', error = null, userId }) {
-  if (!_onEmailSent) return  // No tracking callback registered
-  
   try {
-    await _onEmailSent({
+    const EmailLogRepo = require('../../../db/repos/@custom/EmailLogRepo')
+    await EmailLogRepo.create({
       to_address: to,
       subject,
       template: template ?? null,
@@ -236,17 +234,9 @@ async function _trackEmail({ to, subject, template, messageId, provider, status 
       error: error ?? null,
       user_id: userId ?? null,
     })
-  } catch (_callbackErr) {
+  } catch (_dbErr) {
     // Silently ignore — logging must never break email delivery
   }
-}
-
-/**
- * Register a callback to track sent emails.
- * @param {Function} callback - (emailData) => Promise<void>
- */
-function setEmailSentCallback(callback) {
-  _onEmailSent = callback
 }
 
 /**
@@ -365,5 +355,4 @@ module.exports = {
   sendNotificationEmail,
   resetTransport,
   getTransport,
-  setEmailSentCallback,
 }

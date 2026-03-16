@@ -7,7 +7,7 @@
 //   const { url } = await createCheckoutSession(priceId)
 //   window.location.href = url
 
-import { api } from './api.js'
+import { api } from './api'
 
 /** The publishable key exposed to the browser (pk_test_... or pk_live_...). */
 export const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY

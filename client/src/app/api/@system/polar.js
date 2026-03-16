@@ -1,6 +1,6 @@
 // @system — Polar.sh API calls (client-side)
 // Mirrors stripe.ts so either provider can be used from the billing UI.
-import { api } from '../../lib/@system/api.js'
+import { api } from '../../lib/@system/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

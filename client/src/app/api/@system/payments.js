@@ -5,8 +5,8 @@
 // Usage:
 //   import { getPlans, createCheckout, getSubscription } from '@/app/api/@system/payments'
 
-import { api } from '../../lib/@system/api.js'
-import { formatAmount, formatInterval } from './stripe.js'
+import { api } from '../../lib/@system/api'
+import { formatAmount, formatInterval } from './stripe'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

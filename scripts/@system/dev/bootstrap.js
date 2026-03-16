@@ -144,40 +144,6 @@ if (keysGenerated) {
   console.log('\n✓  All keys already present. No changes made.');
 }
 
-// ── Step 4: Validate TypeScript config ────────────────────────────────────────
-
-console.log('\n── TypeScript config ───────────────────────────────');
-
-const tsconfigPath = path.join(ROOT, 'client/tsconfig.json');
-const envDtsPath   = path.join(ROOT, 'client/src/env.d.ts');
-
-if (fs.existsSync(tsconfigPath)) {
-  // Validate it's parseable JSON
-  try {
-    const raw = fs.readFileSync(tsconfigPath, 'utf8');
-    JSON.parse(raw);
-    console.log('[bootstrap] ✓ client/tsconfig.json exists and is valid JSON');
-  } catch (e) {
-    console.error('[bootstrap] ✗ client/tsconfig.json exists but is invalid JSON:', e.message);
-    process.exit(1);
-  }
-
-  // Check that baseUrl + paths.@/* are configured
-  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'));
-  const co = tsconfig.compilerOptions || {};
-  if (!co.paths || !co.paths['@/*']) {
-    console.warn('[bootstrap] WARNING: tsconfig.json missing paths.@/* alias — imports using @ will not resolve');
-  }
-} else {
-  console.error('[bootstrap] ✗ client/tsconfig.json is MISSING — TypeScript type-checking will fail');
-  console.error('           Run "git checkout client/tsconfig.json" or recreate it from the template.');
-  process.exit(1);
-}
-
-if (!fs.existsSync(envDtsPath)) {
-  console.warn('[bootstrap] WARNING: client/src/env.d.ts is missing — asset imports may lack type declarations');
-}
-
 console.log('\n── Done ────────────────────────────────────────────');
 console.log('Fill in the remaining vars in server/.env and client/.env,');
 console.log('then start the dev server: npm run dev\n');

@@ -7,7 +7,7 @@ import { Button } from '../../../components/@system/ui/button'
 import { FormField, Input } from '../../../components/@system/Form/Form'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/@system/Card/Card'
 import { api } from '../../../lib/@system/api'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')

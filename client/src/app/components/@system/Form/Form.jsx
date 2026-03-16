@@ -1,7 +1,7 @@
-// @system — form field primitives with mobile-optimized inputs
-import { forwardRef } from 'react'
+// @system — form field primitives
 import { Label } from '@radix-ui/react-label'
 import { cn } from '@/app/lib/@system/utils'
+
 
 function FormField({ label, error, required, children, className }) {
   return (
@@ -13,53 +13,18 @@ function FormField({ label, error, required, children, className }) {
         </Label>
       )}
       {children}
-      {error && <p className="text-xs sm:text-sm text-destructive mt-1">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   )
 }
 
-const Input = forwardRef(function Input({ className, error, ...props }, ref) {
+
+function Input({ className, error, ...props }) {
   return (
     <input
-      ref={ref}
       className={cn(
-        // Base styles
-        'flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm sm:text-base ring-offset-background',
-        // Mobile-friendly height (min 44px for touch targets)
-        'h-11 sm:h-10',
-        // File input
-        'file:border-0 file:bg-transparent file:text-sm file:font-medium',
-        // Placeholder
-        'placeholder:text-muted-foreground',
-        // Focus states
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        // Disabled states
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        // Error state
-        error && 'border-destructive focus-visible:ring-destructive',
-        className
-      )}
-      {...props}
-    />
-  )
-})
-
-function Textarea({ className, error, ...props }) {
-  return (
-    <textarea
-      className={cn(
-        // Base styles
-        'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm sm:text-base ring-offset-background',
-        // Placeholder
-        'placeholder:text-muted-foreground',
-        // Focus states
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        // Disabled states
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        // Error state
-        error && 'border-destructive focus-visible:ring-destructive',
-        // Prevent resize on mobile for better UX
-        'resize-y sm:resize',
+        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        error && 'border-destructive',
         className
       )}
       {...props}
@@ -67,15 +32,4 @@ function Textarea({ className, error, ...props }) {
   )
 }
 
-
-// Simple Form wrapper
-function Form({ onSubmit, children, ...props }) {
-  return <form onSubmit={onSubmit} {...props}>{children}</form>
-}
-
-// Simple FormLabel
-function FormLabel({ children, ...props }) {
-  return <label className="text-sm font-medium leading-none" {...props}>{children}</label>
-}
-
-export { Form, FormField, FormLabel, Input, Input as FormInput, Textarea, Textarea as FormTextarea }
+export { FormField, Input }

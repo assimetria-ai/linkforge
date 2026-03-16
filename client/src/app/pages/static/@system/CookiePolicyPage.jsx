@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom'
 import { Cookie } from 'lucide-react'
 import { Header } from '../../../components/@system/Header/Header'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 const LAST_UPDATED = 'February 26, 2026'
 

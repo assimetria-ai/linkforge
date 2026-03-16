@@ -1,2 +1,2 @@
 // @system — FileUpload barrel export
-export { FileUpload } from './FileUpload.jsx'
+export { FileUpload } from './FileUpload'

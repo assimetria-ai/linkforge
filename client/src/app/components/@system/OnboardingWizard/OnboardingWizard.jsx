@@ -14,7 +14,6 @@ import {
   Heart,
   Code2,
   Building2,
-  User,
   Users,
   Megaphone,
   ArrowRight,
@@ -301,7 +300,7 @@ const slideVariants = {
   enter: (direction) => ({
     x: direction > 0 ? 40 : -40,
     opacity: 0 }),
-  center: { x: 0, opacity: 1 },
+  center,
   exit: (direction) => ({
     x: direction > 0 ? -40 : 40,
     opacity: 0 }) }
