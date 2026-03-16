@@ -6,24 +6,105 @@ const cookieParser = require('cookie-parser')
 const pinoHttp = require('pino-http')
 
 const logger = require('./lib/@system/Logger')
-const { cors, securityHeaders } = require('./lib/@system/Middleware')
+const { cors, securityHeaders, csrfProtection, attachDatabase } = require('./lib/@system/Middleware')
+const { apiLimiter } = require('./lib/@system/RateLimit')
 const systemRoutes = require('./routes/@system')
 const customRoutes = require('./routes/@custom')
 
 const app = express()
 
-// Trust the first proxy (Railway, Docker, nginx) so express-rate-limit
-// and req.ip work correctly behind reverse proxies.
-app.set('trust proxy', 1)
+// Trust the first reverse proxy (Railway) so req.ip, req.protocol, and
+// X-Forwarded-For headers resolve to the real client values.  Without this,
+// rate limiting, account lockout, and click-tracking all see the proxy IP.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1)
+}
 
-// /healthz is registered before all middleware (including CORS) so that infrastructure
-// health probes with no Origin header reach it without triggering CORS rejection.
-// This is the only path permitted to bypass CORS in production.
+// Health check endpoints registered before all middleware (including CORS) so that
+// infrastructure health probes with no Origin header reach them without triggering
+// CORS rejection. These are the only paths permitted to bypass CORS in production.
+//
+// Three health endpoints are provided for compatibility:
+// - /health: Standard REST convention
+// - /api/health: API-namespaced health endpoint
+// - /healthz: Kubernetes/GKE convention
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }))
+app.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok' }))
 app.get('/healthz', (_req, res) => res.status(200).json({ status: 'ok' }))
 
 app.use(securityHeaders)
-app.use(cors)
 app.use(compression())
+
+// ── Static assets BEFORE CORS ───────────────────────────────────────────────
+// Browser navigation (typing URL, clicking links) sends no Origin header.
+// CORS middleware rejects no-origin requests in production, so static files
+// (HTML, JS, CSS, images) must be served before CORS is applied.
+// CORS is only needed for cross-origin API requests (fetch/XHR).
+const publicDir = process.env.STATIC_DIR || path.join(__dirname, '..', 'public')
+if (process.env.NODE_ENV === 'production') {
+  const indexExists = fs.existsSync(path.join(publicDir, 'index.html'))
+  const staticJsDir = path.join(publicDir, 'static', 'js')
+  const staticJsExists = fs.existsSync(staticJsDir)
+  logger.info({ publicDir, indexExists, staticJsExists }, 'static asset directory status')
+
+  // Landing page at root
+  const landingFile = path.join(publicDir, 'landing.html')
+  if (fs.existsSync(landingFile)) {
+    app.get('/', (_req, res) => {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+      res.sendFile(landingFile)
+    })
+  }
+
+  // SEO files — explicit routes with correct content-type and short cache
+  const sitemapFile = path.join(publicDir, 'sitemap.xml')
+  if (fs.existsSync(sitemapFile)) {
+    app.get('/sitemap.xml', (_req, res) => {
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8')
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate')
+      res.sendFile(sitemapFile)
+    })
+  }
+  const robotsFile = path.join(publicDir, 'robots.txt')
+  if (fs.existsSync(robotsFile)) {
+    app.get('/robots.txt', (_req, res) => {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate')
+      res.sendFile(robotsFile)
+    })
+  }
+
+  // Resolve unhashed static JS requests to content-hashed equivalents
+  app.use('/static/js', (req, res, next) => {
+    const basename = path.basename(req.path, '.js')
+    if (!basename || basename.includes('.')) return next()
+    const jsDir = path.join(publicDir, 'static', 'js')
+    try {
+      const files = fs.readdirSync(jsDir)
+      const pattern = new RegExp(`^${basename}([.-][a-f0-9]{8}){1,2}\\.js$`)
+      const match = files.find(f => pattern.test(f))
+      if (match) return res.sendFile(path.join(jsDir, match))
+    } catch (_) { /* fall through */ }
+    next()
+  })
+
+  app.use(express.static(publicDir, {
+    index: false,
+    maxAge: '1y',
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+      }
+    }
+  }))
+}
+
+// ── CORS + body parsing (API routes) ────────────────────────────────────────
+// CORS is scoped to /api only. Browser navigation (typing URL, clicking links)
+// sends no Origin header and must reach the SPA fallback without CORS rejection.
+// Static assets are already served above; only fetch/XHR API calls need CORS.
+app.use('/api', cors)
 app.use(express.json({ limit: '10mb' }))
 app.use(cookieParser())
 
@@ -31,16 +112,35 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(pinoHttp({ logger }))
 }
 
+// General rate limiting for all API routes (baseline DoS protection)
+app.use('/api', apiLimiter)
+
+// CSRF protection for state-changing requests
+// Automatically validates CSRF tokens on POST/PUT/PATCH/DELETE requests
+// Clients must first GET /api/csrf-token and include the token in X-CSRF-Token header
+app.use('/api', csrfProtection)
+
+// Attach database repositories to req.db
+app.use('/api', attachDatabase)
+
 // Routes
 app.use('/api', systemRoutes)
 app.use('/api', customRoutes)
 
-// Serve React SPA in production
-const publicDir = path.join(__dirname, '..', 'public')
-if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir))
+// Link shortening redirects (must be before SPA fallback)
+const { linkRedirect } = require('./lib/@custom/redirects')
+app.use(linkRedirect)
+
+// SPA fallback — serve index.html for all non-API, non-static GET requests
+if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    res.sendFile(path.join(publicDir, 'index.html'))
+    const indexPath = path.join(publicDir, 'index.html')
+    if (fs.existsSync(indexPath)) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
+      res.sendFile(indexPath)
+    } else {
+      res.status(404).json({ error: 'Not found' })
+    }
   })
 } else {
   // 404 (dev/test — client runs separately)
