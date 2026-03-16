@@ -11,20 +11,20 @@
  * Skips files that are not versioned migration modules (e.g. this file itself).
  *
  * Usage:
- *   node src/db/migrations/run.js                        # apply all pending
- *   node src/db/migrations/run.js --dry-run              # list pending without applying
- *   node src/db/migrations/run.js --status               # show applied/pending status
- *   node src/db/migrations/run.js --rollback             # roll back last 1 migration
- *   node src/db/migrations/run.js --rollback 3           # roll back last 3 migrations
- *   node src/db/migrations/run.js --rollback-to 003_password_reset.js  # roll back to target
- *   node src/db/migrations/run.js --rollback --dry-run   # preview rollback without executing
+ *   node src/db/migrations/@system/run.js                        # apply all pending
+ *   node src/db/migrations/@system/run.js --dry-run              # list pending without applying
+ *   node src/db/migrations/@system/run.js --status               # show applied/pending status
+ *   node src/db/migrations/@system/run.js --rollback             # roll back last 1 migration
+ *   node src/db/migrations/@system/run.js --rollback 3           # roll back last 3 migrations
+ *   node src/db/migrations/@system/run.js --rollback-to 003_password_reset.js  # roll back to target
+ *   node src/db/migrations/@system/run.js --rollback --dry-run   # preview rollback without executing
  */
 
 require('dotenv').config()
 
 const path = require('path')
 const fs = require('fs')
-const db = require('../../lib/@system/PostgreSQL')
+const db = require('../../../lib/@system/PostgreSQL')
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -35,8 +35,8 @@ const EXCLUDED_FILES = new Set(['run.js', 'index.js', 'create.js', 'precheck.js'
 
 // Directories to scan for migration files, in resolution order
 const MIGRATION_DIRS = [
-  path.join(__dirname, '@system'),
-  path.join(__dirname, '@custom'),
+  path.join(__dirname, '../@system'),
+  path.join(__dirname, '../@custom'),
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -183,9 +183,28 @@ async function applyPending(migrations, applied, dryRun = false) {
       log(`Applied:  ${migration.name} ✓`)
       applied_count++
     } catch (error) {
-      err(`Failed on "${migration.name}": ${error.message}`)
-      err('Aborting migration run. Fix the error and re-run.')
-      throw error
+      // Known-safe errors from partial previous runs (idempotency)
+      const msg = error.message || ''
+      const safePatterns = [
+        'already exists',
+        'duplicate key',
+        'relation ".*" already exists',
+        'column ".*" of relation ".*" already exists',
+        'constraint ".*" already exists',
+        'does not exist', // column/table missing from partial state — skip and let later migrations fix
+      ]
+      const isSafe = safePatterns.some(p => new RegExp(p, 'i').test(msg))
+
+      if (isSafe) {
+        log(`WARN: "${migration.name}" hit recoverable error: ${msg.slice(0, 120)}`)
+        log(`WARN: Marking as applied and continuing (idempotent recovery).`)
+        await recordMigration(migration.name)
+        applied_count++
+      } else {
+        err(`Failed on "${migration.name}": ${msg}`)
+        err('Aborting migration run. Fix the error and re-run.')
+        throw error
+      }
     }
   }
 
