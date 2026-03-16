@@ -54,6 +54,7 @@ const CSRF_EXEMPT_PATHS = [
   '/api/sessions',
   '/api/sessions/refresh',
   '/api/sessions/register',
+  '/api/users', // Registration via POST /api/users (auth store uses this path)
   '/api/webhook',
   '/api/stripe/webhook',
   '/api/payments/webhook',
