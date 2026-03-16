@@ -154,6 +154,12 @@ router.post('/sessions', loginLimiter, validate({ body: LoginBody }), async (req
       return res.status(401).json({ message: 'Invalid credentials' })
     }
 
+    // OAuth-only users have no password_hash — reject gracefully instead of 500
+    if (!user.password_hash) {
+      await incrementFailedAttempts(normalizedEmail)
+      return res.status(401).json({ message: 'Invalid credentials' })
+    }
+
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid) {
       await incrementFailedAttempts(normalizedEmail)
