@@ -49,3 +49,6 @@ export const upgradeSubscription = (data) =>
 
 export const uncancelSubscription = (data) =>
   apiRequest.post('/subscriptions/uncancel', data)
+
+// Re-export apiRequest as 'api' for @custom modules
+export { apiRequest as api } from './utils'
