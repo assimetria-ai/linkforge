@@ -67,7 +67,6 @@ function Textarea({ className, error, ...props }) {
   )
 }
 
-export { FormField, Input, Input as FormInput, Textarea, Textarea as FormTextarea }
 
 // Simple Form wrapper
 function Form({ onSubmit, children, ...props }) {
@@ -79,4 +78,4 @@ function FormLabel({ children, ...props }) {
   return <label className="text-sm font-medium leading-none" {...props}>{children}</label>
 }
 
-export { Form, FormLabel }
+export { Form, FormField, FormLabel, Input, Input as FormInput, Textarea, Textarea as FormTextarea }
