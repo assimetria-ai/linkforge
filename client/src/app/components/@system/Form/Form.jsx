@@ -67,7 +67,7 @@ function Textarea({ className, error, ...props }) {
   )
 }
 
-export { FormField, Input, Textarea }
+export { FormField, Input, Input as FormInput, Textarea, Textarea as FormTextarea }
 
 // Simple Form wrapper
 function Form({ onSubmit, children, ...props }) {
