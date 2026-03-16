@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS subscriptions (
   id                      SERIAL PRIMARY KEY,
   user_id                 INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  brand_id                INTEGER REFERENCES brands(id) ON DELETE SET NULL,
+  brand_id                INTEGER,  -- FK to brands added in migration 012
   stripe_subscription_id  TEXT UNIQUE,       -- Stripe subscription ID (external_id)
   stripe_customer_id      TEXT,
   stripe_price_id         TEXT,
