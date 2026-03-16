@@ -18,9 +18,9 @@ const securityHeaders = helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], // allow inline styles (needed by most React apps)
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"], // allow inline styles (needed by most React apps)
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'", 'https:'],
+      connectSrc: ["'self'", "https:"],
       fontSrc: ["'self'", 'https:', 'data:'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
