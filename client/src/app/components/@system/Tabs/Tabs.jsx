@@ -6,15 +6,13 @@ const Tabs = TabsPrimitive.Root
 
 function TabsList({ className, ...props }) {
   return (
-    <div className="w-full overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-none">
-      <TabsPrimitive.List
-        className={cn(
-          'inline-flex h-10 items-center justify-start sm:justify-center rounded-md bg-muted p-1 text-muted-foreground min-w-min',
-          className
-        )}
-        {...props}
-      />
-    </div>
+    <TabsPrimitive.List
+      className={cn(
+        'inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground',
+        className
+      )}
+      {...props}
+    />
   )
 }
 

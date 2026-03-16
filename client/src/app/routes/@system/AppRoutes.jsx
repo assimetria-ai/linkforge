@@ -6,13 +6,13 @@ import { ProtectedRoute } from '../../components/@system/ProtectedRoute/Protecte
 
 // Static / marketing pages (no auth required)
 const LandingPage = lazy(() =>
-  import('../../pages/static/@custom/LandingPage').then((m) => ({ default: m.LandingPage }))
+  import('../../pages/static/@system/LandingPage').then((m) => ({ default: m.LandingPage }))
 )
 const NotFoundPage = lazy(() =>
   import('../../pages/static/@system/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 )
-const LoginPage = lazy(() =>
-  import('../../pages/static/@system/LoginPage').then((m) => ({ default: m.LoginPage }))
+const AuthPage = lazy(() =>
+  import('../../pages/static/@system/AuthPage').then((m) => ({ default: m.AuthPage }))
 )
 const RegisterPage = lazy(() =>
   import('../../pages/static/@system/RegisterPage').then((m) => ({ default: m.RegisterPage }))
@@ -67,17 +67,11 @@ const TwoFactorVerifyPage = lazy(() =>
 )
 
 // App pages (auth required)
-const DashboardPage = lazy(() =>
-  import('../../pages/app/@system/DashboardPage').then((m) => ({ default: m.DashboardPage }))
+const BlogAdminPage = lazy(() =>
+  import('../../pages/app/@custom/BlogAdminPage').then((m) => ({ default: m.BlogAdminPage }))
 )
-const BrandOnboardingPage = lazy(() =>
-  import('../../pages/app/@system/BrandOnboardingPage').then((m) => ({ default: m.BrandOnboardingPage }))
-)
-const PlanSelectionPage = lazy(() =>
-  import('../../pages/app/@system/PlanSelectionPage').then((m) => ({ default: m.PlanSelectionPage }))
-)
-const OnboardingWizardPage = lazy(() =>
-  import('../../pages/app/@system/OnboardingWizardPage').then((m) => ({ default: m.OnboardingWizardPage }))
+const HomePage = lazy(() =>
+  import('../../pages/app/@system/HomePage').then((m) => ({ default: m.HomePage }))
 )
 const SettingsPage = lazy(() =>
   import('../../pages/app/@system/SettingsPage').then((m) => ({ default: m.SettingsPage }))
@@ -97,44 +91,9 @@ const ApiKeysPage = lazy(() =>
 const IntegrationsPage = lazy(() =>
   import('../../pages/app/@system/IntegrationsPage').then((m) => ({ default: m.IntegrationsPage }))
 )
-const UXPatternsPage = lazy(() =>
-  import('../../pages/app/@custom/UXPatternsPage').then((m) => ({ default: m.UXPatternsPage }))
-)
-const UXDemoPage = lazy(() =>
-  import('../../pages/app/@system/UXDemoPage').then((m) => ({ default: m.UXDemoPage }))
-)
-const MobileResponsiveDemo = lazy(() =>
-  import('../../pages/app/@system/MobileResponsiveDemo').then((m) => ({ default: m.MobileResponsiveDemo }))
-)
-const ContentCalendarPage = lazy(() =>
-  import('../../pages/app/@custom/ContentCalendarPage').then((m) => ({ default: m.ContentCalendarPage }))
-)
-const HashtagResearchPage = lazy(() =>
-  import('../../pages/app/@custom/HashtagResearchPage').then((m) => ({ default: m.HashtagResearchPage }))
-)
-const PostsList = lazy(() =>
-  import('../../pages/app/@custom/PostsList').then((m) => ({ default: m.PostsList }))
-)
-const PostScheduler = lazy(() =>
-  import('../../pages/app/@custom/PostScheduler').then((m) => ({ default: m.PostScheduler }))
-)
-const ContentTemplatesPage = lazy(() =>
-  import('../../pages/app/@custom/ContentTemplatesPage')
-)
-const EngagementAnalyticsPage = lazy(() =>
-  import('../../pages/app/@custom/EngagementAnalyticsPage')
-)
-const AnalyticsDashboardPage = lazy(() =>
-  import('../../pages/app/@custom/AnalyticsDashboardPage').then((m) => ({ default: m.AnalyticsDashboardPage }))
-)
 
-// Teams pages
-const TeamsPage = lazy(() =>
-  import('../../pages/app/TeamsPage').then((m) => ({ default: m.TeamsPage }))
-)
-const TeamDetailPage = lazy(() =>
-  import('../../pages/app/TeamDetailPage').then((m) => ({ default: m.TeamDetailPage }))
-)
+// @custom routes imported from routes/@custom/index.tsx
+import { customRoutes } from '../@custom'
 
 function PageFallback() {
   return (
@@ -144,6 +103,7 @@ function PageFallback() {
   )
 }
 
+/** Redirects authenticated users away from /auth back to /app */
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuthContext()
   if (loading) return <PageFallback />
@@ -155,77 +115,73 @@ export function AppRoutes() {
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
+        {/* Marketing / public */}
         <Route path="/" element={<LandingPage />} />
 
+        {/* Auth — redirect to /app when already logged in */}
         <Route
-          path="/login"
+          path="/auth"
           element={
             <GuestRoute>
-              <LoginPage />
+              <AuthPage />
             </GuestRoute>
           }
         />
 
+        {/* Password reset (public, no auth required) */}
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* Email verification (public — token is in the URL) */}
         <Route path="/verify-email" element={<VerifyEmailPage />} />
 
+        {/* Legal pages */}
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/refund-policy" element={<RefundPolicyPage />} />
         <Route path="/cookies" element={<CookiePolicyPage />} />
         <Route path="/cookie-policy" element={<Navigate to="/cookies" replace />} />
 
+        {/* Pricing (public) */}
         <Route path="/pricing" element={<PricingPage />} />
 
+        {/* Help center / knowledge base */}
         <Route path="/help" element={<HelpCenterPage />} />
         <Route path="/help/:slug" element={<ArticlePage />} />
 
+        {/* Blog */}
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
 
+        {/* About */}
         <Route path="/about" element={<AboutPage />} />
+
+        {/* Contact */}
         <Route path="/contact" element={<ContactPage />} />
+
+        {/* Onboarding wizard — shown to new users after registration */}
         <Route path="/onboarding" element={<OnboardingPage />} />
+
+        {/* 2FA challenge — shown after password login when TOTP is required */}
         <Route path="/2fa/verify" element={<TwoFactorVerifyPage />} />
+
+        {/* Register — standalone registration page */}
         <Route path="/register" element={<RegisterPage />} />
 
-        <Route path="/auth" element={<Navigate to="/login" replace />} />
+        {/* Aliases — redirect legacy paths */}
+        <Route path="/login" element={<Navigate to="/auth" replace />} />
         <Route path="/signup" element={<Navigate to="/register" replace />} />
 
+        {/* Legacy /dashboard path → authenticated area */}
         <Route path="/dashboard" element={<Navigate to="/app" replace />} />
         <Route path="/dashboard/*" element={<Navigate to="/app" replace />} />
 
-        <Route
-          path="/app/onboarding/brand"
-          element={
-            <ProtectedRoute>
-              <BrandOnboardingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/onboarding/plan"
-          element={
-            <ProtectedRoute>
-              <PlanSelectionPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/onboarding/setup"
-          element={
-            <ProtectedRoute>
-              <OnboardingWizardPage />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* App (authenticated) */}
         <Route
           path="/app"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <HomePage />
             </ProtectedRoute>
           }
         />
@@ -254,22 +210,6 @@ export function AppRoutes() {
           }
         />
         <Route
-          path="/app/ux-patterns"
-          element={
-            <ProtectedRoute>
-              <UXPatternsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/ux-demo"
-          element={
-            <ProtectedRoute>
-              <UXDemoPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/app/admin"
           element={
             <ProtectedRoute role="admin">
@@ -285,6 +225,7 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/app/integrations"
           element={
@@ -293,87 +234,20 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
-          path="/app/mobile-demo"
+          path="/app/admin/blog"
           element={
-            <ProtectedRoute>
-              <MobileResponsiveDemo />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/calendar"
-          element={
-            <ProtectedRoute>
-              <ContentCalendarPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/posts"
-          element={
-            <ProtectedRoute>
-              <PostsList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/posts/new"
-          element={
-            <ProtectedRoute>
-              <PostScheduler />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/hashtags"
-          element={
-            <ProtectedRoute>
-              <HashtagResearchPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/templates"
-          element={
-            <ProtectedRoute>
-              <ContentTemplatesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/analytics"
-          element={
-            <ProtectedRoute>
-              <AnalyticsDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/analytics/engagement"
-          element={
-            <ProtectedRoute>
-              <EngagementAnalyticsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/teams"
-          element={
-            <ProtectedRoute>
-              <TeamsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/app/teams/:id"
-          element={
-            <ProtectedRoute>
-              <TeamDetailPage />
+            <ProtectedRoute role="admin">
+              <BlogAdminPage />
             </ProtectedRoute>
           }
         />
 
+        {/* Custom product routes */}
+        {customRoutes}
+
+        {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>

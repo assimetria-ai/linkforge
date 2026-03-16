@@ -2,7 +2,7 @@
 // @custom — Customise FOOTER_LINKS and SOCIAL_LINKS below per product
 import { Link } from 'react-router-dom'
 import { Twitter, Github, Linkedin, Youtube, Mail } from 'lucide-react'
-import { info } from '@/config'
+import { info } from '@/config/@system/info'
 
 // ── Link columns ─────────────────────────────────────────────────────────────
 const FOOTER_LINKS = [
@@ -54,18 +54,18 @@ export function Footer() {
   return (
     <footer className="border-t bg-muted/20">
       {/* ── Main columns ───────────────────────────────────────────────────── */}
-      <div className="container mx-auto px-4 py-8 sm:py-10 md:py-14 grid grid-cols-2 gap-6 sm:gap-8 md:gap-10 md:grid-cols-4 lg:grid-cols-5">
+      <div className="container mx-auto px-4 py-10 sm:py-14 grid grid-cols-2 gap-6 sm:gap-10 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
         {/* Brand column */}
-        <div className="col-span-2 md:col-span-4 lg:col-span-1 flex flex-col gap-3 sm:gap-4">
-          <Link to="/" className="font-bold text-base sm:text-lg text-foreground hover:opacity-80 transition-opacity">
+        <div className="col-span-2 md:col-span-4 lg:col-span-1 flex flex-col gap-4">
+          <Link to="/" className="font-bold text-lg text-foreground hover:opacity-80 transition-opacity">
             {info.name}
           </Link>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-[280px] sm:max-w-[220px]">
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-[220px]">
             {info.tagline}
           </p>
 
           {/* Social icons */}
-          <div className="flex items-center gap-2 sm:gap-3 mt-1">
+          <div className="flex items-center gap-3 mt-1">
             {SOCIAL_LINKS.map(({ label, href, icon: Icon }) => (
               <a
                 key={label}
@@ -73,7 +73,7 @@ export function Footer() {
                 aria-label={label}
                 target={href.startsWith('mailto') ? undefined : '_blank'}
                 rel={href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
                 <Icon className="h-4 w-4" />
               </a>
@@ -83,17 +83,17 @@ export function Footer() {
 
         {/* Link columns */}
         {FOOTER_LINKS.map((col) => (
-          <div key={col.label} className="flex flex-col gap-2 sm:gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-1">
+          <div key={col.label} className="flex flex-col gap-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
               {col.label}
             </h3>
-            <ul className="space-y-1.5 sm:space-y-2">
+            <ul className="space-y-2">
               {col.links.map(({ title, href, external }) => (
                 <li key={title}>
                   {external ? (
                     <a
                       href={href}
-                      className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors inline-block"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                       target={href.startsWith('mailto') ? undefined : '_blank'}
                       rel={href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
                     >
@@ -102,7 +102,7 @@ export function Footer() {
                   ) : (
                     <Link
                       to={href}
-                      className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors inline-block"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {title}
                     </Link>
@@ -116,16 +116,16 @@ export function Footer() {
 
       {/* ── Legal bar ──────────────────────────────────────────────────────── */}
       <div className="border-t">
-        <div className="container mx-auto px-4 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 text-xs text-muted-foreground">
-          <p className="text-center sm:text-left">© {year} {info.name}. All rights reserved.</p>
-          <div className="flex items-center gap-3 sm:gap-5 flex-wrap justify-center">
-            <Link to="/privacy" className="hover:text-foreground transition-colors whitespace-nowrap">
+        <div className="container mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <p>© {year} {info.name}. All rights reserved.</p>
+          <div className="flex items-center gap-5">
+            <Link to="/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
-            <Link to="/terms" className="hover:text-foreground transition-colors whitespace-nowrap">
+            <Link to="/terms" className="hover:text-foreground transition-colors">
               Terms of Service
             </Link>
-            <Link to="/cookies" className="hover:text-foreground transition-colors whitespace-nowrap">
+            <Link to="/cookies" className="hover:text-foreground transition-colors">
               Cookie Policy
             </Link>
           </div>

@@ -8,7 +8,7 @@ import { Button } from '../../../components/@system/ui/button'
 import { Badge } from '../../../components/@system/Badge/Badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/@system/Card/Card'
 import { useAuthContext } from '../../../store/@system/auth'
-import { info } from '@/config'
+import { info } from '@/config/@system/info'
 import {
   getPlans,
   createCheckoutSession,
@@ -59,13 +59,13 @@ export function PricingPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12 md:py-16 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
         {/* ── Heading ── */}
-        <div className="mb-8 sm:mb-10 md:mb-12 text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl font-bold tracking-tight">
             Simple, transparent pricing
           </h1>
-          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
+          <p className="mt-4 text-lg text-muted-foreground">
             Choose the plan that fits your needs. Upgrade or cancel anytime.
           </p>
         </div>
@@ -90,7 +90,7 @@ export function PricingPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className={`grid gap-4 sm:gap-6 ${plans.length === 1 ? 'max-w-sm mx-auto' : plans.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+          <div className={`grid gap-6 ${plans.length === 1 ? 'max-w-sm mx-auto' : plans.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
             {plans.map((plan, i) => {
               const TierIcon = TIER_ICONS[i % TIER_ICONS.length]
               const isPopular = plan.metadata?.popular === 'true'
@@ -103,43 +103,42 @@ export function PricingPage() {
                 >
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="px-2.5 sm:px-3 py-0.5 text-xs">Most Popular</Badge>
+                      <Badge className="px-3 py-0.5 text-xs">Most Popular</Badge>
                     </div>
                   )}
 
-                  <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                  <CardHeader className="pb-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <TierIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                      <CardTitle className="text-base sm:text-lg">{plan.name}</CardTitle>
+                      <TierIcon className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-lg">{plan.name}</CardTitle>
                     </div>
                     {plan.description && (
-                      <CardDescription className="text-xs sm:text-sm">{plan.description}</CardDescription>
+                      <CardDescription>{plan.description}</CardDescription>
                     )}
-                    <div className="mt-3 sm:mt-4">
-                      <span className="text-3xl sm:text-4xl font-bold">{formatAmount(plan.amount, plan.currency)}</span>
-                      <span className="ml-1 text-muted-foreground text-xs sm:text-sm">{formatInterval(plan.interval, plan.intervalCount)}</span>
+                    <div className="mt-4">
+                      <span className="text-4xl font-bold">{formatAmount(plan.amount, plan.currency)}</span>
+                      <span className="ml-1 text-muted-foreground text-sm">{formatInterval(plan.interval, plan.intervalCount)}</span>
                     </div>
                     {plan.trialDays && (
-                      <p className="text-xs text-muted-foreground mt-1 sm:mt-1.5">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {plan.trialDays}-day free trial — no credit card required
                       </p>
                     )}
                   </CardHeader>
 
-                  <CardContent className="flex flex-1 flex-col px-4 sm:px-6">
+                  <CardContent className="flex flex-1 flex-col">
                     {/* Feature list */}
-                    <ul className="space-y-1.5 sm:space-y-2 mb-5 sm:mb-6 flex-1">
+                    <ul className="space-y-2 mb-6 flex-1">
                       {features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2 text-xs sm:text-sm">
-                          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 shrink-0" />
-                          <span className="leading-relaxed">{feature}</span>
+                        <li key={feature} className="flex items-start gap-2 text-sm">
+                          <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                          {feature}
                         </li>
                       ))}
                     </ul>
 
                     <Button
                       className="w-full"
-                      size="default"
                       variant={isPopular ? 'default' : 'outline'}
                       onClick={() => handleSelectPlan(plan.priceId)}
                       disabled={!!checkoutLoading}
@@ -158,20 +157,20 @@ export function PricingPage() {
         )}
 
         {/* ── FAQ / Footer notes ── */}
-        <div className="mt-10 sm:mt-12 md:mt-16 text-center space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground px-4">
+        <div className="mt-16 text-center space-y-2 text-sm text-muted-foreground">
           <p>All plans include a 30-day money-back guarantee.</p>
           <p>
             Payments are securely processed by Stripe. We never store your card details.
           </p>
           <p>
-            Questions?{' '}
+            Questions{' '}
             <a href={`mailto:${info.supportEmail}`} className="underline hover:text-foreground">
               Contact us
             </a>
           </p>
           {!isAuthenticated && (
             <p className="pt-2">
-              Already have an account?{' '}
+              Already have an account{' '}
               <Link to="/auth" className="underline hover:text-foreground font-medium">
                 Sign in
               </Link>

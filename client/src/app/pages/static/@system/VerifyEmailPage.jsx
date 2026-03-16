@@ -11,7 +11,7 @@ import { api } from '../../../lib/@system/api'
 import { useAuthContext } from '../../../store/@system/auth'
 import { Button } from '../../../components/@system/ui/button'
 import { Card, CardContent } from '../../../components/@system/Card/Card'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 export function VerifyEmailPage() {
   const [searchParams] = useSearchParams()

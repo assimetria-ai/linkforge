@@ -18,7 +18,6 @@ const UserRepo = require('../../../db/repos/@system/UserRepo')
 const OAuthRepo = require('../../../db/repos/@system/OAuthRepo')
 const { signTokenAsync } = require('../../../lib/@system/Helpers/jwt')
 const logger = require('../../../lib/@system/Logger')
-const { oauthLimiter } = require('../../../lib/@system/RateLimit')
 
 const SESSION_TTL = 7 * 24 * 60 * 60 // 7 days in seconds
 
@@ -140,7 +139,7 @@ function handleOAuthError(res, err, provider) {
 
 // ─── Google ───────────────────────────────────────────────────────────────────
 
-router.get('/auth/google', oauthLimiter, (req, res) => {
+router.get('/auth/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID
   if (!clientId) return res.status(501).json({ message: 'Google OAuth is not configured' })
 
@@ -149,7 +148,7 @@ router.get('/auth/google', oauthLimiter, (req, res) => {
   res.redirect(url)
 })
 
-router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
+router.get('/auth/google/callback', async (req, res) => {
   const { code, error } = req.query
   
   // SECURITY: The 'error' from req.query is user-controlled (from OAuth provider)
@@ -178,7 +177,7 @@ router.get('/auth/google/callback', oauthLimiter, async (req, res) => {
 
 // ─── GitHub ───────────────────────────────────────────────────────────────────
 
-router.get('/auth/github', oauthLimiter, (req, res) => {
+router.get('/auth/github', (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID
   if (!clientId) return res.status(501).json({ message: 'GitHub OAuth is not configured' })
 
@@ -187,7 +186,7 @@ router.get('/auth/github', oauthLimiter, (req, res) => {
   res.redirect(url)
 })
 
-router.get('/auth/github/callback', oauthLimiter, async (req, res) => {
+router.get('/auth/github/callback', async (req, res) => {
   const { code, error } = req.query
   
   // SECURITY: The 'error' from req.query is user-controlled (from OAuth provider)

@@ -5,7 +5,7 @@ import { cn } from '@/app/lib/@system/utils'
 
 
 
-function Sidebar({ children, className = '' }) {
+function Sidebar({ children, className }) {
   return (
     <aside
       className={cn(
@@ -18,7 +18,7 @@ function Sidebar({ children, className = '' }) {
   )
 }
 
-function SidebarLogo({ name, href = '/app', className = '' }) {
+function SidebarLogo({ name, href = '/app', className }) {
   return (
     <div className={cn('mb-6 px-3', className)}>
       <Link
@@ -31,11 +31,11 @@ function SidebarLogo({ name, href = '/app', className = '' }) {
   )
 }
 
-function SidebarSection({ children, className = '' }) {
+function SidebarSection({ children, className }) {
   return <div className={cn('flex flex-col gap-1', className)}>{children}</div>
 }
 
-function SidebarItem({ icon, label, active, onClick = undefined, className = '' }) {
+function SidebarItem({ icon, label, active, onClick, className }) {
   return (
     <button
       onClick={onClick}

@@ -204,10 +204,10 @@ export function ApiKeysPage() {
           </SidebarSection>
         </Sidebar>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+        <main className="flex-1 overflow-auto p-8 max-w-4xl">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold">API Keys</h1>
+              <h1 className="text-2xl font-bold">API Keys</h1>
               <p className="mt-1 text-muted-foreground">
                 Manage API keys for programmatic access to your account.
               </p>

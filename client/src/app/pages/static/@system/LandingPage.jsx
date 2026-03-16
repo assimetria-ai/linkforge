@@ -1,5 +1,5 @@
 // @system — Landing page: hero + features + CTA + footer
-// @custom — to add custom sections (FAQ, HeroSection), create @custom/LandingPage.jsx that wraps or extends this
+// @custom — override info.ts values (name, tagline) and add your own sections below
 import { Link } from 'react-router-dom'
 import { ArrowRight, Check } from 'lucide-react'
 import { Button } from '../../../components/@system/ui/button'
@@ -7,8 +7,10 @@ import { Header } from '../../../components/@system/Header/Header'
 import { Footer } from '../../../components/@system/Footer/Footer'
 import { Card, CardContent } from '../../../components/@system/Card/Card'
 import { FeaturesSection } from '../../../components/@system/FeaturesSection'
+import { FAQ } from '../../../components/@custom/FAQ'
+import { HeroSection } from '../../../components/@custom/HeroSection/HeroSection'
 import { OgMeta } from '../../../components/@system/OgMeta/OgMeta'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 const PLANS = [
   {
@@ -51,68 +53,54 @@ export function LandingPage() {
       <Header />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      {/* @custom — to add a custom hero, create @custom/LandingPage.jsx that includes your HeroSection */}
-      <section className="container mx-auto px-4 py-12 sm:py-16 md:py-20 text-center">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-          {info.tagline}
-        </h1>
-        <p className="mt-4 sm:mt-5 md:mt-6 text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-          Get started with {info.name} today.
-        </p>
-        <div className="mt-6 sm:mt-7 md:mt-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 max-w-xs sm:max-w-none mx-auto">
-          <Link to="/auth?tab=register" className="w-full sm:w-auto">
-            <Button size="lg" className="gap-2 w-full sm:w-auto sm:min-w-[180px]">
-              Get Started <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      </section>
+      {/* @custom — override badge/headline/subtitle/CTA labels via props:    */}
+      {/*   <HeroSection headline="Ship faster" subtitle="..." ctaLabel="..." /> */}
+      <HeroSection />
 
       {/* ── Features ─────────────────────────────────────────────────────── */}
       <FeaturesSection />
 
       {/* ── Pricing ──────────────────────────────────────────────────────── */}
-      <section className="container mx-auto px-4 py-12 sm:py-16 md:py-20">
-        <div className="text-center mb-8 sm:mb-12 md:mb-14">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">Simple, transparent pricing</h2>
-          <p className="mt-2 sm:mt-3 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto px-2">
+      <section className="container mx-auto px-4 py-12 sm:py-20">
+        <div className="text-center mb-10 sm:mb-14">
+          <h2 className="text-2xl sm:text-3xl font-bold">Simple, transparent pricing</h2>
+          <p className="mt-2 sm:mt-3 text-sm sm:text-base text-muted-foreground">
             No hidden fees. Cancel anytime.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+        <div className="grid gap-5 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
           {PLANS.map((plan) => (
             <Card
               key={plan.name}
               className={plan.highlighted ? 'border-primary shadow-lg' : ''}
             >
-              <CardContent className="pt-5 sm:pt-6 px-4 sm:px-6 space-y-3 sm:space-y-4">
+              <CardContent className="pt-6 space-y-4">
                 {plan.highlighted && (
-                  <span className="inline-block rounded-full bg-primary px-2.5 sm:px-3 py-0.5 sm:py-1 text-xs font-medium text-primary-foreground">
+                  <span className="inline-block rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
                     Most Popular
                   </span>
                 )}
                 <div>
-                  <h3 className="text-base sm:text-lg md:text-xl font-bold">{plan.name}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold">{plan.name}</h3>
                   <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-2xl sm:text-3xl md:text-4xl font-bold">{plan.price}</span>
+                    <span className="text-3xl sm:text-4xl font-bold">{plan.price}</span>
                     {plan.period && (
-                      <span className="text-xs sm:text-sm text-muted-foreground">{plan.period}</span>
+                      <span className="text-sm text-muted-foreground">{plan.period}</span>
                     )}
                   </div>
                 </div>
-                <ul className="space-y-1.5 sm:space-y-2">
+                <ul className="space-y-2">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-xs sm:text-sm">
-                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-                      <span className="leading-relaxed">{f}</span>
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <Check className="h-4 w-4 text-primary shrink-0" />
+                      {f}
                     </li>
                   ))}
                 </ul>
                 <Link to={plan.ctaLink} className="block">
                   <Button
                     className="w-full"
-                    size="default"
                     variant={plan.highlighted ? 'default' : 'outline'}
                   >
                     {plan.cta}
@@ -124,16 +112,19 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <FAQ />
+
       {/* ── Footer CTA ───────────────────────────────────────────────────── */}
       <section className="border-t bg-muted/30">
-        <div className="container mx-auto px-4 py-10 sm:py-14 md:py-16 text-center">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Ready to get started?</h2>
-          <p className="mt-2 sm:mt-3 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto px-2">
+        <div className="container mx-auto px-4 py-12 sm:py-16 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold">Ready to get started?</h2>
+          <p className="mt-2 sm:mt-3 text-sm sm:text-base text-muted-foreground">
             Join thousands of teams already using {info.name}.
           </p>
-          <div className="mt-6 sm:mt-7 md:mt-8 flex justify-center">
+          <div className="mt-6 sm:mt-8 flex justify-center">
             <Link to="/auth?tab=register" className="w-full max-w-xs sm:w-auto">
-              <Button size="lg" className="gap-2 w-full sm:w-auto sm:min-w-[200px]">
+              <Button size="lg" className="gap-2 w-full sm:w-auto">
                 Create Free Account <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

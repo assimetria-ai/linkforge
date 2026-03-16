@@ -18,7 +18,7 @@ import {
 import { Header } from '../../../components/@system/Header/Header'
 import { Card, CardContent } from '../../../components/@system/Card/Card'
 import { Button } from '../../../components/@system/ui/button'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 import { cn } from '../../../lib/@system/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────

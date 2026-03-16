@@ -21,18 +21,6 @@ function hashKey(raw) {
   return crypto.createHash('sha256').update(raw).digest('hex')
 }
 
-function toPublicUser(user) {
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    emailVerified: !!user.email_verified_at,
-    onboardingCompleted: !!user.onboarding_completed,
-    activeBrandId: user.active_brand_id ?? null,
-  }
-}
-
 async function authenticate(req, res, next) {
   try {
     const rawToken = extractAccessToken(req)
@@ -50,7 +38,7 @@ async function authenticate(req, res, next) {
       if (!user) return res.status(401).json({ message: 'Unauthorized' })
       // Fire-and-forget last_used update
       ApiKeyRepo.touchLastUsed(apiKey.id).catch(() => {})
-      req.user = toPublicUser(user)
+      req.user = { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: !!user.email_verified_at, onboardingCompleted: !!user.onboarding_completed }
       req.apiKey = { id: apiKey.id, name: apiKey.name }
       return next()
     }
@@ -59,7 +47,7 @@ async function authenticate(req, res, next) {
     const payload = await verifyTokenAsync(rawToken)
     const user = await UserRepo.findById(payload.userId)
     if (!user) return res.status(401).json({ message: 'Unauthorized' })
-    req.user = toPublicUser(user)
+    req.user = { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: !!user.email_verified_at, onboardingCompleted: !!user.onboarding_completed }
     next()
   } catch (err) {
     res.status(401).json({ message: 'Unauthorized' })
