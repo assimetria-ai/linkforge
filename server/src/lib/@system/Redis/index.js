@@ -7,9 +7,14 @@ let client = null
 if (REDIS_URL) {
   const Redis = require('ioredis')
   client = new Redis(REDIS_URL, {
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: 1,
+    retryStrategy(times) {
+      if (times > 3) return null  // stop retrying after 3 attempts
+      return Math.min(times * 500, 2000)
+    },
     enableReadyCheck: true,
     lazyConnect: true,
+    connectTimeout: 5000,
   })
 
   client.on('connect', () => logger.info('Redis connected'))
