@@ -223,6 +223,7 @@ const oauthLimiter = createLimiter({
 })
 
 module.exports = {
+  createLimiter,
   apiLimiter,
   loginLimiter,
   registerLimiter,
