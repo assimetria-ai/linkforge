@@ -6,7 +6,7 @@
 //
 // Props all optional — omit to use the product defaults from info.ts
 import { useEffect } from 'react'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 
 function setMeta(property, content, attr = 'property') {

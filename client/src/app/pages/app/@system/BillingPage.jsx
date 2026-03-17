@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Button } from '../../../components/@system/ui/button'
 import { Badge } from '../../../components/@system/Badge/Badge'
 import { useAuthContext } from '../../../store/@system/auth'
-import { info } from '@/config'
+import { info } from '@/config/@system/info'
 import {
   getMySubscription,
   getPlans,
@@ -179,10 +179,10 @@ export function BillingPage() {
         </Sidebar>
 
         {/* ── Main content ── */}
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 max-w-3xl">
+        <main className="flex-1 overflow-auto p-8 max-w-3xl">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold">Billing</h1>
+              <h1 className="text-2xl font-bold">Billing</h1>
               <p className="mt-1 text-muted-foreground">Manage your subscription and payment details.</p>
             </div>
             <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">

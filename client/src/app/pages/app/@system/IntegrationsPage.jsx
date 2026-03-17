@@ -5,8 +5,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Home, Settings, Shield, CreditCard, Activity, Key, Puzzle,
-  CheckCircle2, XCircle, AlertCircle, RefreshCw, FlaskConical,
-} from 'lucide-react'
+  CheckCircle2, XCircle, AlertCircle, RefreshCw, FlaskConical } from 'lucide-react'
 import { Header } from '../../../components/@system/Header/Header'
 import { Sidebar, SidebarSection, SidebarItem } from '../../../components/@system/Sidebar/Sidebar'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/@system/Card/Card'
@@ -14,6 +13,9 @@ import { Button } from '../../../components/@system/ui/button'
 import { Badge } from '../../../components/@system/ui/badge'
 import { useAuthContext } from '../../../store/@system/auth'
 import { api } from '../../../lib/@system/api'
+
+
+
 
 const NAV_ITEMS = [
   { icon: Home,     label: 'Dashboard', to: '/app' },
@@ -30,8 +32,7 @@ const CATEGORY_ICONS = {
   notifications: '🔔',
   sms:           '💬',
   ai:            '🤖',
-  oauth:         '🔐',
-}
+  oauth:         '🔐' }
 
 function StatusBadge({ configured, devMode }) {
   if (devMode) {
@@ -52,7 +53,10 @@ function StatusBadge({ configured, devMode }) {
   )
 }
 
-function ProviderRow({ name, health, isActive }) {
+function ProviderRow({
+  name,
+  health,
+  isActive }) {
   return (
     <div className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${isActive ? 'bg-muted' : ''}`}>
       <div className="flex items-center gap-2">
@@ -230,7 +234,7 @@ export function IntegrationsPage() {
                   <span className="ml-1 text-muted-foreground">not configured</span>
                 </div>
                 <div className="ml-auto text-xs text-muted-foreground">
-                  Last checked: {new Date(status.timestamp).toLocaleTimeString()}
+                  Last checked
                 </div>
               </div>
             )}

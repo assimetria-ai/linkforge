@@ -1,7 +1,7 @@
 // @system — core API calls (auth, user, subscriptions, sessions)
 // Do not modify this file. Add product-specific calls in @custom/
 
-import { apiRequest } from './utils.js'
+import { apiRequest } from './utils'
 
 // ─── Auth / User ────────────────────────────────────────────────────────────
 
@@ -49,6 +49,3 @@ export const upgradeSubscription = (data) =>
 
 export const uncancelSubscription = (data) =>
   apiRequest.post('/subscriptions/uncancel', data)
-
-// Re-export apiRequest as 'api' for @custom modules
-export { apiRequest as api } from './utils'

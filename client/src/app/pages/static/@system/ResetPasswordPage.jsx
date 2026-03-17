@@ -7,7 +7,7 @@ import { Button } from '../../../components/@system/ui/button'
 import { FormField, Input } from '../../../components/@system/Form/Form'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/@system/Card/Card'
 import { api } from '../../../lib/@system/api'
-import { info } from '@/config'
+import { info } from '../../../../config/@system/info'
 
 export function ResetPasswordPage() {
   const navigate = useNavigate()
@@ -41,7 +41,7 @@ export function ResetPasswordPage() {
     try {
       await api.post('/users/password/reset', { token, password })
       setSuccess(true)
-      setTimeout(() => navigate('/login'), 3000)
+      setTimeout(() => navigate('/auth'), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reset password. The link may have expired.')
     } finally {

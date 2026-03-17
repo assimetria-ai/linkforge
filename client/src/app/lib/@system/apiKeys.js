@@ -1,5 +1,5 @@
 // @system — API key management client
-import { api } from './api.js'
+import { api } from './api'
 
 
 

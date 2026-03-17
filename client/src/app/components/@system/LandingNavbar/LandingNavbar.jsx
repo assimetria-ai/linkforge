@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Menu, X, Zap } from 'lucide-react'
 import { Button } from '../ui/button'
 import { useAuthContext } from '@/app/store/@system/auth'
-import { info } from '@/config'
+import { info } from '@/config/@system/info'
 import { cn } from '@/app/lib/@system/utils'
 
 const NAV_LINKS = [
@@ -83,12 +83,12 @@ export function LandingNavbar({ className }) {
             </Link>
           ) : (
             <>
-              <Link to="/login">
+              <Link to="/auth">
                 <Button variant="ghost" size="sm">
                   Log In
                 </Button>
               </Link>
-              <Link to="/register">
+              <Link to="/auth?tab=register">
                 <Button size="sm">Sign Up Free</Button>
               </Link>
             </>
@@ -129,12 +129,12 @@ export function LandingNavbar({ className }) {
                 </Link>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                  <Link to="/auth" onClick={() => setMobileOpen(false)}>
                     <Button variant="outline" className="w-full" size="sm">
                       Log In
                     </Button>
                   </Link>
-                  <Link to="/register" onClick={() => setMobileOpen(false)}>
+                  <Link to="/auth?tab=register" onClick={() => setMobileOpen(false)}>
                     <Button className="w-full" size="sm">
                       Sign Up Free
                     </Button>

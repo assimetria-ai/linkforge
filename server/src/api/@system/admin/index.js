@@ -8,11 +8,8 @@ const SubscriptionRepo = require('../../../db/repos/@system/SubscriptionRepo')
 const db = require('../../../lib/@system/PostgreSQL')
 const { validate } = require('../../../lib/@system/Validation')
 const { ListUsersQuery, UserIdParams, UpdateUserRoleBody, ListSubscriptionsQuery } = require('../../../lib/@system/Validation/schemas/@system/admin')
-const { adminReadLimiter, adminWriteLimiter } = require('../../../lib/@system/RateLimit')
 
 const guard = [authenticate, requireAdmin]
-const readGuard = [authenticate, requireAdmin, adminReadLimiter]
-const writeGuard = [authenticate, requireAdmin, adminWriteLimiter]
 
 // Statement timeout for admin list queries (5 seconds) — prevents slow queries from blocking the DB pool
 const ADMIN_QUERY_TIMEOUT = "SET LOCAL statement_timeout = '5s'"
@@ -20,7 +17,7 @@ const ADMIN_QUERY_TIMEOUT = "SET LOCAL statement_timeout = '5s'"
 // ── Users ─────────────────────────────────────────────────────────────────
 
 // GET /api/admin/users — paginated user list with optional search and status filter
-router.get('/admin/users', ...readGuard, validate({ query: ListUsersQuery }), async (req, res, next) => {
+router.get('/admin/users', ...guard, validate({ query: ListUsersQuery }), async (req, res, next) => {
   try {
     const { search, page, limit, status } = req.query
     const users = await db.task(async t => {
@@ -51,7 +48,7 @@ router.get('/admin/users', ...readGuard, validate({ query: ListUsersQuery }), as
 })
 
 // GET /api/admin/users/stats — registration counts and totals
-router.get('/admin/users/stats', ...readGuard, async (req, res, next) => {
+router.get('/admin/users/stats', ...guard, async (req, res, next) => {
   try {
     const [total, todayRow, weekRow, monthRow] = await db.task(async t => {
       await t.none(ADMIN_QUERY_TIMEOUT)
@@ -74,7 +71,7 @@ router.get('/admin/users/stats', ...readGuard, async (req, res, next) => {
 })
 
 // GET /api/admin/users/:id — single user details
-router.get('/admin/users/:id', ...readGuard, validate({ params: UserIdParams }), async (req, res, next) => {
+router.get('/admin/users/:id', ...guard, validate({ params: UserIdParams }), async (req, res, next) => {
   try {
     const user = await UserRepo.findById(req.params.id)
     if (!user) return res.status(404).json({ message: 'User not found' })
@@ -86,7 +83,7 @@ router.get('/admin/users/:id', ...readGuard, validate({ params: UserIdParams }),
 })
 
 // PATCH /api/admin/users/:id/role — change user role
-router.patch('/admin/users/:id/role', ...writeGuard, validate({ params: UserIdParams, body: UpdateUserRoleBody }), async (req, res, next) => {
+router.patch('/admin/users/:id/role', ...guard, validate({ params: UserIdParams, body: UpdateUserRoleBody }), async (req, res, next) => {
   try {
     const { role } = req.body
     const updated = await db.oneOrNone(
@@ -103,7 +100,7 @@ router.patch('/admin/users/:id/role', ...writeGuard, validate({ params: UserIdPa
 // ── Subscriptions ─────────────────────────────────────────────────────────
 
 // GET /api/admin/subscriptions — all subscriptions with user info
-router.get('/admin/subscriptions', ...readGuard, validate({ query: ListSubscriptionsQuery }), async (req, res, next) => {
+router.get('/admin/subscriptions', ...guard, validate({ query: ListSubscriptionsQuery }), async (req, res, next) => {
   try {
     const { page, limit, status } = req.query
     const conditions = status ? "WHERE s.status = $3" : ''
@@ -130,7 +127,7 @@ router.get('/admin/subscriptions', ...readGuard, validate({ query: ListSubscript
 })
 
 // GET /api/admin/subscriptions/stats — counts by status
-router.get('/admin/subscriptions/stats', ...readGuard, async (req, res, next) => {
+router.get('/admin/subscriptions/stats', ...guard, async (req, res, next) => {
   try {
     const rows = await db.task(async t => {
       await t.none(ADMIN_QUERY_TIMEOUT)
@@ -142,8 +139,5 @@ router.get('/admin/subscriptions/stats', ...readGuard, async (req, res, next) =>
     next(err)
   }
 })
-
-// ── Financials sub-router ─────────────────────────────────────────────────
-router.use(require('./financials'))
 
 module.exports = router

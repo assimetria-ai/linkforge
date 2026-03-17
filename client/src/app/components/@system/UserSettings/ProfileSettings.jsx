@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Camera, Mail, User as UserIcon, Trash2 } from 'lucide-react'
 import { SettingsSection, SettingsRow } from './UserSettings'
 import { Button } from '../Button/Button'
-import { Form, FormField, FormLabel, Input as FormInput, Textarea as FormTextarea } from '../Form/Form'
+import { Form, FormField, FormLabel, FormInput, FormTextarea } from '../Form/Form'
 import { Avatar } from '../Avatar/Avatar'
 import { cn } from '@/app/lib/@system/utils'
 
@@ -178,5 +178,40 @@ export function ProfileSettings({ user, onUpdate }) {
         </div>
       </SettingsSection>
     </div>
+  )
+}
+
+// Simple Avatar component (if not exists in @system)
+function Avatar({ src, alt, size = 'md', fallback, className }) {
+  const sizes = {
+    sm: 'h-8 w-8 text-xs',
+    md: 'h-10 w-10 text-sm',
+    lg: 'h-16 w-16 text-lg',
+  }
+
+  if (!src) {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-center rounded-full bg-primary/10 text-primary font-medium',
+          sizes[size],
+          className
+        )}
+      >
+        {fallback || <UserIcon className="h-1/2 w-1/2" />}
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={cn(
+        'rounded-full object-cover',
+        sizes[size],
+        className
+      )}
+    />
   )
 }

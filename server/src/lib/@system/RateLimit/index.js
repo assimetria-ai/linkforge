@@ -150,81 +150,7 @@ const integrationTestLimiter = createLimiter({
   message: 'Too many integration test requests. Please try again later.',
 })
 
-/** General API rate limiter: 100 requests per minute — baseline DoS protection for all endpoints */
-const apiLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 100,
-  prefix: 'rl:api:',
-  message: 'Too many requests. Please slow down and try again later.',
-})
-
-/** AI chat endpoints: 20 per minute — prevents cost abuse on expensive LLM API calls */
-const aiChatLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 20,
-  prefix: 'rl:ai-chat:',
-  message: 'AI chat rate limit exceeded. Please slow down.',
-})
-
-/** AI image generation: 5 per hour — DALL-E costs $0.04-0.12 per image */
-const aiImageLimiter = createLimiter({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  prefix: 'rl:ai-image:',
-  message: 'Image generation rate limit exceeded. Please try again later.',
-})
-
-/** TOTP setup: 5 per hour — prevents QR code generation abuse */
-const totpSetupLimiter = createLimiter({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  prefix: 'rl:totp-setup:',
-  message: 'Too many 2FA setup attempts. Please try again later.',
-})
-
-/** TOTP enable/disable: 5 per 10 minutes — prevents brute-force on 6-digit codes */
-const totpEnableLimiter = createLimiter({
-  windowMs: 10 * 60 * 1000,
-  max: 5,
-  prefix: 'rl:totp-enable:',
-  message: 'Too many 2FA attempts. Please try again later.',
-})
-
-/** Admin read operations: 60 per minute — prevents abuse of expensive queries */
-const adminReadLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 60,
-  prefix: 'rl:admin-read:',
-  message: 'Admin rate limit exceeded.',
-})
-
-/** Admin write operations: 10 per minute — tighter control on state-changing operations */
-const adminWriteLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 10,
-  prefix: 'rl:admin-write:',
-  message: 'Admin write rate limit exceeded.',
-})
-
-/** Email test endpoint: 10 per hour — prevents email bombing via admin test endpoint */
-const emailTestLimiter = createLimiter({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
-  prefix: 'rl:email-test:',
-  message: 'Too many test email requests.',
-})
-
-/** OAuth endpoints: 20 per minute — prevents redirect loops and state brute-forcing */
-const oauthLimiter = createLimiter({
-  windowMs: 60 * 1000,
-  max: 20,
-  prefix: 'rl:oauth:',
-  message: 'OAuth rate limit exceeded.',
-})
-
 module.exports = {
-  createLimiter,
-  apiLimiter,
   loginLimiter,
   registerLimiter,
   passwordResetLimiter,
@@ -232,12 +158,4 @@ module.exports = {
   apiKeyLimiter,
   uploadLimiter,
   integrationTestLimiter,
-  aiChatLimiter,
-  aiImageLimiter,
-  totpSetupLimiter,
-  totpEnableLimiter,
-  adminReadLimiter,
-  adminWriteLimiter,
-  emailTestLimiter,
-  oauthLimiter,
 }

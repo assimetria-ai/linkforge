@@ -132,6 +132,7 @@ class Scheduler {
     if (!task) throw new Error(`[scheduler] task not found: ${taskName}`)
     this._enqueueTask(task)
   }
+
 }
 
 module.exports = new Scheduler()
