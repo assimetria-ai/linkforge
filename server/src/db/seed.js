@@ -26,16 +26,7 @@ const db = require('../lib/@system/PostgreSQL')
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const BCRYPT_ROUNDS = 10
-
-// Security: Use env var for seed password, or generate a random one
-// NEVER use a weak hardcoded password
-const DEFAULT_PASSWORD = process.env.SEED_PASSWORD || (() => {
-  const crypto = require('crypto')
-  const randomPassword = crypto.randomBytes(16).toString('base64')
-  console.warn('[seed] WARNING: No SEED_PASSWORD env var set. Using random password:', randomPassword)
-  console.warn('[seed] Set SEED_PASSWORD=your_dev_password to use a consistent password for development.')
-  return randomPassword
-})()
+const DEFAULT_PASSWORD = 'password123'
 
 const args = process.argv.slice(2)
 const CLEAN = args.includes('--clean')
@@ -211,8 +202,7 @@ async function seedUsers() {
     inserted.push(row)
   }
 
-  log(`Seeded ${inserted.length} users (including 1 admin).`)
-  log(`Default password: "${DEFAULT_PASSWORD}"`)
+  log(`Seeded ${inserted.length} users (including 1 admin). Default password: "${DEFAULT_PASSWORD}"`)
   return inserted
 }
 

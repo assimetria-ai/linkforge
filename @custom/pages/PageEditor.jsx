@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Menu, X, Eye, EyeOff, QrCode } from 'lucide-react';
-import { QrCodePanel } from '../../client/src/app/components/@custom/QrCodePanel';
 
 /**
  * PageEditor - Simple no-code page builder component
  * Allows users to create and edit pages with drag-and-drop blocks
- * Mobile-responsive with collapsible palette and preview
  */
 export default function PageEditor() {
   const { id } = useParams();
@@ -15,9 +12,6 @@ export default function PageEditor() {
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showPalette, setShowPalette] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showQrPanel, setShowQrPanel] = useState(false);
 
   useEffect(() => {
     loadPage();
@@ -107,150 +101,67 @@ export default function PageEditor() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-lg text-muted-foreground">Loading page editor...</p>
-      </div>
-    );
+    return <div className="loading">Loading page editor...</div>;
   }
 
   return (
-    <div className="page-editor min-h-screen bg-background">
-      {/* Mobile Header with Toggle Buttons */}
-      <div className="editor-header sticky top-0 z-10 bg-background border-b px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold">
-            {id ? 'Edit Page' : 'Create New Page'}
-          </h1>
-          {/* Mobile Toggle Buttons */}
-          <div className="flex gap-2 lg:hidden">
-            <button
-              onClick={() => setShowPalette(!showPalette)}
-              className="mobile-toggle"
-              title="Toggle block palette"
-            >
-              {showPalette ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="mobile-toggle"
-              title="Toggle preview"
-            >
-              {showPreview ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            </button>
-            {id && (
-              <button
-                onClick={() => setShowQrPanel(!showQrPanel)}
-                className="mobile-toggle"
-                title="QR Code"
-              >
-                <QrCode className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="editor-actions flex gap-2 w-full sm:w-auto">
-          <button onClick={() => navigate('/pages')} disabled={saving} className="action-btn secondary">
+    <div className="page-editor">
+      <div className="editor-header">
+        <h1>{id ? 'Edit Page' : 'Create New Page'}</h1>
+        <div className="editor-actions">
+          <button onClick={() => navigate('/pages')} disabled={saving}>
             Cancel
           </button>
-          <button onClick={savePage} disabled={saving} className="action-btn primary">
+          <button onClick={savePage} disabled={saving}>
             {saving ? 'Saving...' : 'Save Page'}
           </button>
         </div>
       </div>
 
-      {/* Page Meta Fields */}
-      <div className="editor-meta px-4 py-3 border-b bg-muted/20">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            placeholder="Page Title"
-            value={page?.title || ''}
-            onChange={(e) => setPage({ ...page, title: e.target.value })}
-            className="meta-input flex-1"
-          />
-          <input
-            type="text"
-            placeholder="Page Slug (URL)"
-            value={page?.slug || ''}
-            onChange={(e) => setPage({ ...page, slug: e.target.value })}
-            className="meta-input flex-1"
-          />
-        </div>
+      <div className="editor-meta">
+        <input
+          type="text"
+          placeholder="Page Title"
+          value={page?.title || ''}
+          onChange={(e) => setPage({ ...page, title: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Page Slug (URL)"
+          value={page?.slug || ''}
+          onChange={(e) => setPage({ ...page, slug: e.target.value })}
+        />
       </div>
 
-      {/* Main Editor Layout */}
-      <div className="editor-layout max-w-7xl mx-auto p-4">
-        {/* Block Palette - Collapsible on Mobile */}
-        <div className={`block-palette ${showPalette ? 'mobile-show' : ''}`}>
-          <div className="palette-header flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold">Add Blocks</h3>
-            <button
-              onClick={() => setShowPalette(false)}
-              className="lg:hidden p-1 hover:bg-accent rounded"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="palette-buttons">
-            <button onClick={() => { addBlock('text'); setShowPalette(false); }} className="palette-btn">
-              📝 Text
-            </button>
-            <button onClick={() => { addBlock('heading'); setShowPalette(false); }} className="palette-btn">
-              🔤 Heading
-            </button>
-            <button onClick={() => { addBlock('image'); setShowPalette(false); }} className="palette-btn">
-              🖼️ Image
-            </button>
-            <button onClick={() => { addBlock('button'); setShowPalette(false); }} className="palette-btn">
-              🔘 Button
-            </button>
-            <button onClick={() => { addBlock('divider'); setShowPalette(false); }} className="palette-btn">
-              ➖ Divider
-            </button>
-          </div>
+      <div className="editor-layout">
+        <div className="block-palette">
+          <h3>Add Blocks</h3>
+          <button onClick={() => addBlock('text')}>📝 Text</button>
+          <button onClick={() => addBlock('heading')}>🔤 Heading</button>
+          <button onClick={() => addBlock('image')}>🖼️ Image</button>
+          <button onClick={() => addBlock('button')}>🔘 Button</button>
+          <button onClick={() => addBlock('divider')}>➖ Divider</button>
         </div>
 
-        {/* Canvas - Main Editor Area */}
         <div className="canvas">
           {blocks.length === 0 ? (
             <div className="empty-state">
-              <p className="text-muted-foreground">No blocks yet. Add some from the palette!</p>
-              <button
-                onClick={() => setShowPalette(true)}
-                className="mt-4 lg:hidden palette-btn inline-flex items-center gap-2"
-              >
-                <Menu className="h-4 w-4" />
-                Open Block Palette
-              </button>
+              <p>No blocks yet. Add some from the palette!</p>
             </div>
           ) : (
             blocks.map((block, index) => (
               <div key={block.id} className="block">
                 <div className="block-controls">
-                  <button
-                    onClick={() => moveBlock(block.id, 'up')}
-                    disabled={index === 0}
-                    className="control-btn"
-                    title="Move up"
-                  >
+                  <button onClick={() => moveBlock(block.id, 'up')} disabled={index === 0}>
                     ⬆️
                   </button>
                   <button
                     onClick={() => moveBlock(block.id, 'down')}
                     disabled={index === blocks.length - 1}
-                    className="control-btn"
-                    title="Move down"
                   >
                     ⬇️
                   </button>
-                  <button
-                    onClick={() => deleteBlock(block.id)}
-                    className="control-btn delete"
-                    title="Delete block"
-                  >
-                    🗑️
-                  </button>
+                  <button onClick={() => deleteBlock(block.id)}>🗑️</button>
                 </div>
 
                 <div className="block-content">
@@ -259,7 +170,6 @@ export default function PageEditor() {
                       value={block.content}
                       onChange={(e) => updateBlock(block.id, { content: e.target.value })}
                       placeholder="Enter text..."
-                      className="block-textarea"
                     />
                   )}
                   {block.type === 'heading' && (
@@ -268,7 +178,6 @@ export default function PageEditor() {
                       value={block.content}
                       onChange={(e) => updateBlock(block.id, { content: e.target.value })}
                       placeholder="Enter heading..."
-                      className="block-input"
                     />
                   )}
                   {block.type === 'image' && (
@@ -277,420 +186,209 @@ export default function PageEditor() {
                       value={block.content}
                       onChange={(e) => updateBlock(block.id, { content: e.target.value })}
                       placeholder="Image URL..."
-                      className="block-input"
                     />
                   )}
                   {block.type === 'button' && (
-                    <div className="flex flex-col gap-2">
+                    <div>
                       <input
                         type="text"
                         value={block.content}
                         onChange={(e) => updateBlock(block.id, { content: e.target.value })}
                         placeholder="Button text..."
-                        className="block-input"
                       />
                       <input
                         type="text"
                         value={block.url || ''}
                         onChange={(e) => updateBlock(block.id, { url: e.target.value })}
                         placeholder="Button URL..."
-                        className="block-input"
                       />
                     </div>
                   )}
-                  {block.type === 'divider' && <hr className="my-2 border-border" />}
+                  {block.type === 'divider' && <hr />}
                 </div>
               </div>
             ))
           )}
         </div>
 
-        {/* Preview Panel - Collapsible on Mobile */}
-        <div className={`preview ${showPreview ? 'mobile-show' : ''}`}>
-          <div className="preview-header flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold">Preview</h3>
-            <button
-              onClick={() => setShowPreview(false)}
-              className="lg:hidden p-1 hover:bg-accent rounded"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="preview">
+          <h3>Preview</h3>
           <div className="preview-content">
-            {blocks.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Add blocks to see preview
-              </p>
-            ) : (
-              blocks.map((block) => (
-                <div key={block.id} className={`preview-block block-${block.type}`}>
-                  {block.type === 'text' && <p className="text-sm">{block.content}</p>}
-                  {block.type === 'heading' && <h2 className="text-xl font-bold">{block.content}</h2>}
-                  {block.type === 'image' && block.content && (
-                    <img src={block.content} alt="Preview" className="max-w-full h-auto rounded" />
-                  )}
-                  {block.type === 'button' && (
-                    <button className="px-4 py-2 bg-primary text-primary-foreground rounded">
-                      {block.content || 'Button'}
-                    </button>
-                  )}
-                  {block.type === 'divider' && <hr className="my-3 border-border" />}
-                </div>
-              ))
-            )}
+            {blocks.map((block) => (
+              <div key={block.id} className={`preview-block block-${block.type}`}>
+                {block.type === 'text' && <p>{block.content}</p>}
+                {block.type === 'heading' && <h2>{block.content}</h2>}
+                {block.type === 'image' && block.content && (
+                  <img src={block.content} alt="Preview" />
+                )}
+                {block.type === 'button' && (
+                  <button>{block.content || 'Button'}</button>
+                )}
+                {block.type === 'divider' && <hr />}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* QR Code Panel for saved pages */}
-      {id && showQrPanel && page && (
-        <div className="max-w-md mx-auto p-4">
-          <QrCodePanel
-            pageId={id}
-            slug={page?.slug || 'page'}
-          />
-        </div>
-      )}
-
       <style jsx>{`
-        /* ── Base Styles ──────────────────────────────────────────────── */
         .page-editor {
-          --color-bg: hsl(var(--background));
-          --color-fg: hsl(var(--foreground));
-          --color-border: hsl(var(--border));
-          --color-muted: hsl(var(--muted));
-          --color-muted-fg: hsl(var(--muted-foreground));
-          --color-accent: hsl(var(--accent));
-          --color-primary: hsl(var(--primary));
-          --color-primary-fg: hsl(var(--primary-foreground));
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 20px;
         }
 
-        /* ── Header ───────────────────────────────────────────────────── */
         .editor-header {
-          background: var(--color-bg);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
         }
 
-        /* ── Action Buttons ───────────────────────────────────────────── */
-        .action-btn {
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          border-radius: 0.375rem;
-          transition: all 0.2s;
-          cursor: pointer;
+        .editor-actions {
+          display: flex;
+          gap: 10px;
+        }
+
+        .editor-meta {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        .editor-meta input {
           flex: 1;
+          padding: 10px;
+          font-size: 16px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
         }
 
-        .action-btn.primary {
-          background: var(--color-primary);
-          color: var(--color-primary-fg);
-          border: 1px solid var(--color-primary);
-        }
-
-        .action-btn.primary:hover:not(:disabled) {
-          opacity: 0.9;
-        }
-
-        .action-btn.secondary {
-          background: transparent;
-          color: var(--color-fg);
-          border: 1px solid var(--color-border);
-        }
-
-        .action-btn.secondary:hover:not(:disabled) {
-          background: var(--color-accent);
-        }
-
-        .action-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        @media (min-width: 640px) {
-          .action-btn {
-            flex: initial;
-            min-width: 100px;
-          }
-        }
-
-        /* ── Mobile Toggle Buttons ────────────────────────────────────── */
-        .mobile-toggle {
-          padding: 0.5rem;
-          background: var(--color-accent);
-          border: 1px solid var(--color-border);
-          border-radius: 0.375rem;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .mobile-toggle:hover {
-          background: var(--color-muted);
-        }
-
-        /* ── Meta Inputs ──────────────────────────────────────────────── */
-        .meta-input {
-          padding: 0.625rem 0.75rem;
-          font-size: 0.875rem;
-          border: 1px solid var(--color-border);
-          border-radius: 0.375rem;
-          background: var(--color-bg);
-          color: var(--color-fg);
-          transition: border-color 0.2s;
-        }
-
-        .meta-input:focus {
-          outline: none;
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 3px hsla(var(--primary), 0.1);
-        }
-
-        /* ── Editor Layout ────────────────────────────────────────────── */
         .editor-layout {
           display: grid;
-          grid-template-columns: 1fr;
-          gap: 1rem;
-          position: relative;
+          grid-template-columns: 200px 1fr 300px;
+          gap: 20px;
         }
 
-        /* Mobile: Stack vertically */
-        @media (min-width: 1024px) {
-          .editor-layout {
-            grid-template-columns: 220px 1fr 320px;
-            gap: 1.5rem;
-          }
-        }
-
-        /* ── Block Palette ────────────────────────────────────────────── */
         .block-palette {
-          background: var(--color-muted);
-          padding: 1rem;
-          border-radius: 0.5rem;
-          border: 1px solid var(--color-border);
+          background: #f5f5f5;
+          padding: 15px;
+          border-radius: 8px;
         }
 
-        /* Mobile: Fixed overlay */
-        @media (max-width: 1023px) {
-          .block-palette {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 280px;
-            max-width: 80vw;
-            height: 100vh;
-            z-index: 50;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-          }
-
-          .block-palette.mobile-show {
-            transform: translateX(0);
-          }
+        .block-palette h3 {
+          margin-top: 0;
         }
 
-        .palette-header h3 {
-          margin: 0;
-          font-size: 0.875rem;
-        }
-
-        .palette-buttons {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .palette-btn {
+        .block-palette button {
           display: block;
           width: 100%;
-          padding: 0.625rem 0.75rem;
+          margin-bottom: 10px;
+          padding: 10px;
           text-align: left;
-          background: var(--color-bg);
-          border: 1px solid var(--color-border);
-          border-radius: 0.375rem;
+          background: white;
+          border: 1px solid #ddd;
+          border-radius: 4px;
           cursor: pointer;
-          font-size: 0.875rem;
-          transition: all 0.2s;
         }
 
-        .palette-btn:hover {
-          background: var(--color-accent);
+        .block-palette button:hover {
+          background: #e8e8e8;
         }
 
-        /* ── Canvas ───────────────────────────────────────────────────── */
         .canvas {
           min-height: 400px;
-          background: var(--color-bg);
-          border: 1px solid var(--color-border);
-          border-radius: 0.5rem;
-          padding: 1rem;
-        }
-
-        @media (min-width: 768px) {
-          .canvas {
-            padding: 1.5rem;
-          }
+          background: white;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 20px;
         }
 
         .empty-state {
           text-align: center;
-          padding: 3rem 1rem;
+          color: #999;
+          padding: 40px;
         }
 
-        /* ── Block Styles ─────────────────────────────────────────────── */
         .block {
-          margin-bottom: 1rem;
-          padding: 1rem;
-          padding-top: 2.5rem;
-          border: 1px solid var(--color-border);
-          border-radius: 0.375rem;
+          margin-bottom: 15px;
+          padding: 15px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
           position: relative;
-          background: var(--color-bg);
         }
 
         .block-controls {
           position: absolute;
-          top: 0.5rem;
-          right: 0.5rem;
+          top: 10px;
+          right: 10px;
           display: flex;
-          gap: 0.375rem;
-          z-index: 10;
+          gap: 5px;
         }
 
-        .control-btn {
-          padding: 0.375rem 0.625rem;
-          border: 1px solid var(--color-border);
-          background: var(--color-bg);
-          border-radius: 0.25rem;
+        .block-controls button {
+          padding: 5px 10px;
+          border: 1px solid #ddd;
+          background: white;
+          border-radius: 4px;
           cursor: pointer;
-          font-size: 0.875rem;
-          transition: all 0.2s;
-          min-width: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
-        .control-btn:hover:not(:disabled) {
-          background: var(--color-accent);
-        }
-
-        .control-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-
-        .control-btn.delete:hover:not(:disabled) {
-          background: hsl(var(--destructive));
-          color: hsl(var(--destructive-foreground));
-          border-color: hsl(var(--destructive));
-        }
-
-        /* Touch-friendly on mobile */
-        @media (max-width: 767px) {
-          .control-btn {
-            padding: 0.5rem 0.75rem;
-            min-width: 2.5rem;
-          }
-        }
-
-        .block-content {
-          margin-top: 0.5rem;
-        }
-
-        .block-textarea,
-        .block-input {
+        .block-content textarea,
+        .block-content input {
           width: 100%;
-          padding: 0.625rem;
-          border: 1px solid var(--color-border);
-          border-radius: 0.375rem;
-          background: var(--color-bg);
-          color: var(--color-fg);
-          font-size: 0.875rem;
-          transition: border-color 0.2s;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          margin-top: 5px;
         }
 
-        .block-textarea {
+        .block-content textarea {
           min-height: 100px;
           resize: vertical;
-          font-family: inherit;
         }
 
-        .block-textarea:focus,
-        .block-input:focus {
-          outline: none;
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 3px hsla(var(--primary), 0.1);
-        }
-
-        /* ── Preview Panel ────────────────────────────────────────────── */
         .preview {
-          background: var(--color-muted);
-          padding: 1rem;
-          border-radius: 0.5rem;
-          border: 1px solid var(--color-border);
+          background: #f5f5f5;
+          padding: 15px;
+          border-radius: 8px;
         }
 
-        /* Mobile: Fixed overlay from right */
-        @media (max-width: 1023px) {
-          .preview {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 320px;
-            max-width: 85vw;
-            height: 100vh;
-            z-index: 50;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-            overflow-y: auto;
-          }
-
-          .preview.mobile-show {
-            transform: translateX(0);
-          }
-        }
-
-        .preview-header h3 {
-          margin: 0;
-          font-size: 0.875rem;
+        .preview h3 {
+          margin-top: 0;
         }
 
         .preview-content {
-          background: var(--color-bg);
-          padding: 1rem;
-          border-radius: 0.375rem;
-          margin-top: 0.75rem;
+          background: white;
+          padding: 20px;
+          border-radius: 4px;
         }
 
         .preview-block {
-          margin-bottom: 1rem;
+          margin-bottom: 15px;
         }
 
-        .preview-block:last-child {
-          margin-bottom: 0;
+        .loading {
+          text-align: center;
+          padding: 40px;
         }
 
-        /* ── Mobile Overlay Backdrop ──────────────────────────────────── */
-        @media (max-width: 1023px) {
-          .block-palette.mobile-show::before,
-          .preview.mobile-show::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: -1;
-          }
+        button {
+          padding: 10px 20px;
+          border: 1px solid #ddd;
+          background: #007bff;
+          color: white;
+          border-radius: 4px;
+          cursor: pointer;
         }
 
-        /* ── Responsive Typography ────────────────────────────────────── */
-        @media (max-width: 640px) {
-          .editor-header h1 {
-            font-size: 1.125rem;
-          }
+        button:hover:not(:disabled) {
+          background: #0056b3;
+        }
+
+        button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
     </div>

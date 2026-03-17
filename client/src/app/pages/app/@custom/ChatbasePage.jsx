@@ -180,7 +180,7 @@ export function ChatbasePage() {
         </Sidebar>
 
         {/* ── Main content ── */}
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 max-w-2xl">
+        <main className="flex-1 overflow-auto p-8 max-w-2xl">
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">

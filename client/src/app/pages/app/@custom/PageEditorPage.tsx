@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '../../../components/@system/ui/button';
-import { Card } from '../../../components/@system/Card/Card';
-import { Input } from '../../../components/@system/ui/input';
-import { Label } from '../../../components/@system/ui/label';
-import { Alert } from '../../../components/@system/Alert/Alert';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/@system/Tabs/Tabs';
+import { Button } from '@/components/@system/ui/button';
+import { Card } from '@/components/@system/Card/Card';
+import { Input } from '@/components/@system/ui/input';
+import { Label } from '@/components/@system/ui/label';
+import { Alert } from '@/components/@system/Alert/Alert';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/@system/Tabs/Tabs';
 
 interface Block {
   id: string;
@@ -188,17 +188,17 @@ export function PageEditorPage() {
   return (
     <div className="h-screen flex flex-col">
       {/* Top Toolbar */}
-      <div className="border-b bg-white px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-          <Button variant="ghost" onClick={() => navigate('/app/pages')} className="shrink-0">
+      <div className="border-b bg-white px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate('/app/pages')}>
             ← Back
           </Button>
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold truncate">{page.name}</h1>
-            <p className="text-xs sm:text-sm text-gray-500 truncate">/{page.slug}</p>
+          <div>
+            <h1 className="text-xl font-bold">{page.name}</h1>
+            <p className="text-sm text-gray-500">/{page.slug}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2">
           {page.status === 'draft' && (
             <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
               Draft
@@ -209,10 +209,10 @@ export function PageEditorPage() {
               Published
             </span>
           )}
-          <Button variant="outline" onClick={savePage} disabled={saving} className="text-sm">
+          <Button variant="outline" onClick={savePage} disabled={saving}>
             {saving ? 'Saving...' : 'Save'}
           </Button>
-          <Button onClick={publishPage} disabled={saving} className="text-sm">
+          <Button onClick={publishPage} disabled={saving}>
             {page.status === 'published' ? 'Update' : 'Publish'}
           </Button>
         </div>
@@ -220,42 +220,42 @@ export function PageEditorPage() {
 
       {/* Alerts */}
       {error && (
-        <div className="mx-4 sm:mx-6 mt-4">
-          <Alert variant="destructive" dismissible>
+        <div className="mx-6 mt-4">
+          <Alert variant="destructive" onClose={() => setError(null)}>
             {error}
           </Alert>
         </div>
       )}
       {success && (
-        <div className="mx-4 sm:mx-6 mt-4">
-          <Alert variant="success" dismissible>
+        <div className="mx-6 mt-4">
+          <Alert variant="success" onClose={() => setSuccess(null)}>
             {success}
           </Alert>
         </div>
       )}
 
       {/* Main Editor */}
-      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-        {/* Block Palette - Mobile: Horizontal scroll, Desktop: Sidebar */}
-        <div className="lg:w-64 border-b lg:border-b-0 lg:border-r bg-gray-50 p-4 overflow-x-auto lg:overflow-y-auto">
-          <h2 className="font-semibold mb-4 text-sm lg:text-base">Add Blocks</h2>
-          <div className="flex lg:flex-col gap-2 lg:space-y-2">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Block Palette Sidebar */}
+        <div className="w-64 border-r bg-gray-50 p-4 overflow-y-auto">
+          <h2 className="font-semibold mb-4">Add Blocks</h2>
+          <div className="space-y-2">
             {BLOCK_TYPES.map(({ type, label, icon }) => (
               <Button
                 key={type}
                 variant="outline"
-                className="whitespace-nowrap lg:w-full lg:justify-start shrink-0"
+                className="w-full justify-start"
                 onClick={() => addBlock(type)}
               >
                 <span className="mr-2">{icon}</span>
-                <span className="hidden sm:inline">{label}</span>
+                {label}
               </Button>
             ))}
           </div>
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 bg-gray-100 p-4 sm:p-6 overflow-y-auto">
+        <div className="flex-1 bg-gray-100 p-6 overflow-y-auto">
           <div className="max-w-4xl mx-auto space-y-4">
             {blocks.length === 0 ? (
               <Card className="p-12 text-center">
@@ -314,20 +314,10 @@ export function PageEditorPage() {
           </div>
         </div>
 
-        {/* Properties Panel - Mobile: Bottom drawer, Desktop: Right sidebar */}
+        {/* Properties Panel */}
         {selected && (
-          <div className="fixed lg:static bottom-0 left-0 right-0 lg:w-80 border-t lg:border-t-0 lg:border-l bg-white p-4 overflow-y-auto max-h-[50vh] lg:max-h-full z-10 shadow-lg lg:shadow-none">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-sm lg:text-base">Block Properties</h2>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setSelectedBlock(null)}
-                className="lg:hidden"
-              >
-                ✕
-              </Button>
-            </div>
+          <div className="w-80 border-l bg-white p-4 overflow-y-auto">
+            <h2 className="font-semibold mb-4">Block Properties</h2>
             <div className="space-y-4">
               {selected.type === 'hero' && (
                 <>

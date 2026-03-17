@@ -5,7 +5,7 @@ require('dotenv').config()
   const { execFileSync, spawnSync } = require('child_process')
   const path = require('path')
   const node = process.execPath
-  const runJs = path.join(__dirname, 'db/migrations/run.js')
+  const runJs = path.join(__dirname, 'db/migrations/@system/run.js')
   const dropScript = path.join(__dirname, '..', 'scripts', 'drop-schema-migrations.js')
   const log = (msg) => console.log(`[startup][${new Date().toISOString()}] ${msg}`)
   try {
@@ -15,12 +15,11 @@ require('dotenv').config()
   } catch (e) {
     log(`Migrations failed (${e.message}) — clearing schema_migrations and retrying`)
     try {
+      // Drop schema_migrations using a dedicated script (avoids inline -e code anti-pattern)
       spawnSync(node, [dropScript], { stdio: 'inherit', env: process.env })
-      execFileSync(node, [runJs], { stdio: 'inherit' })
-      log('Migrations done after recovery.')
-    } catch (retryErr) {
-      log(`Migrations retry also failed (${retryErr.message}) — server will start without migrations`)
-    }
+    } catch (_) {}
+    execFileSync(node, [runJs], { stdio: 'inherit' })
+    log('Migrations done after recovery.')
   }
 })()
 
@@ -38,16 +37,8 @@ const BIND_HOST = process.env.BIND_HOST ||
   (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1')
 
 async function start() {
-  try {
-    await connectPostgres()
-  } catch (err) {
-    logger.warn({ err }, 'PostgreSQL connection failed — server will start without DB (healthcheck + static assets will work)')
-  }
-  try {
-    await connectRedis()
-  } catch (err) {
-    logger.warn({ err }, 'Redis connection failed — server will start without Redis')
-  }
+  await connectPostgres()
+  await connectRedis()
 
   // ── Email logging ──────────────────────────────────────────────────────
   // Register email tracking callback if EmailLogRepo exists
@@ -61,13 +52,12 @@ async function start() {
   }
 
   // ── Scheduler ──────────────────────────────────────────────────────────
-  // Initialize custom tasks (application layer imports @custom, not @system)
   try {
     const initCustomTasks = require('./scheduler/tasks/@custom/init')
     initCustomTasks(scheduler)
-    logger.info('custom tasks initialised')
+    logger.info('scheduler: custom tasks initialised')
   } catch (err) {
-    logger.warn({ err }, 'no custom task init found or init failed — skipping')
+    logger.warn({ err }, 'scheduler: no custom init found or init failed — skipping')
   }
 
   const server = app.listen(PORT, BIND_HOST, () => {

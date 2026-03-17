@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react'
 import {
   DollarSign,
@@ -185,7 +184,7 @@ function PlanFormModal({
             )}
 
             {/* Name + Slug */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Plan Name *</label>
                 <input
@@ -220,7 +219,7 @@ function PlanFormModal({
             </div>
 
             {/* Prices + Currency */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Monthly Price *</label>
                 <div className="relative">
@@ -291,7 +290,7 @@ function PlanFormModal({
             </div>
 
             {/* Stripe IDs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Stripe Monthly Price ID</label>
                 <input
@@ -313,7 +312,7 @@ function PlanFormModal({
             </div>
 
             {/* Sort Order + Flags */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Sort Order</label>
                 <input
@@ -324,7 +323,7 @@ function PlanFormModal({
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
-              <div className="flex flex-col gap-3 sm:pt-6">
+              <div className="flex flex-col gap-3 pt-6">
                 <label className="flex items-center gap-2.5 cursor-pointer select-none">
                   <input
                     type="checkbox"

@@ -19,10 +19,7 @@
     "@aws-sdk/client-s3": "^3.998.0",
     "@aws-sdk/client-ses": "^3.999.0",
     "@aws-sdk/s3-request-presigner": "^3.998.0",
-    "@sentry/node": "^7.119.0",
-    "@sentry/tracing": "^7.119.0",
     "bcryptjs": "^2.4.3",
-    "bullmq": "^5.20.0",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -31,7 +28,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.1",
-    "formidable": "^3.5.4",
     "helmet": "^7.1.0",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
@@ -50,8 +46,7 @@
   },
   "optionalDependencies": {
     "algoliasearch": "^4.24.0",
-    "meilisearch": "^0.44.0",
-    "sharp": "^0.33.0"
+    "meilisearch": "^0.44.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",

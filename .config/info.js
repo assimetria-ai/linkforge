@@ -2,22 +2,22 @@
 // @system — do not modify this file directly; override values in config/@custom/
 
 let GENERAL_INFO = {
-  name: 'Linkforge',
-  description: 'Open-source link management for modern marketing teams. Short links, analytics, UTM builder, team workspaces.',
+  name: 'ProductTemplate',
+  description: 'New SaaS Product built on the Assimetria template',
   cta: {
     title: 'Start Today',
     description: 'Join thousands of users transforming their workflow.',
     buttonText: 'Get Started for Free',
   },
-  url: 'https://linkforge-production-0c1e.up.railway.app',
-  email: 'general@linkforge.io',
-  supportEmail: 'support@linkforge.io',
+  url: 'https://yourproduct.com',
+  email: 'general@yourproduct.com',
+  supportEmail: 'support@yourproduct.com',
   socials: [],
-  theme_color: '#3A8BFD',
-  background_color: '#f0f6ff',
+  theme_color: '#6940f8',
+  background_color: '#f7f6fe',
   links: {
-    faq: 'https://support.linkforge.io',
-    refer_and_earn: 'https://linkforge.io/refer-and-earn',
+    faq: 'https://support.yourproduct.com',
+    refer_and_earn: 'https://yourproduct.com/refer-and-earn',
   },
   products: {
     monthly: {

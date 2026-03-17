@@ -102,7 +102,7 @@ function ErrorDetailModal({ event, onClose, onStatusChange }) {
         {/* Body */}
         <div className="p-5 space-y-4">
           {/* Meta */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs text-muted-foreground mb-0.5">First seen</p>
               <p className="font-medium">{timeAgo(event.first_seen)}</p>

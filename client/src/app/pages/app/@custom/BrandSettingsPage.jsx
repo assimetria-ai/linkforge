@@ -118,7 +118,7 @@ function BrandList({ brands, onSelect, onCreate }) {
                   {/* Logo thumbnail */}
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border bg-muted overflow-hidden">
                     {brand.logo_url ? (
-                      <img src={brand.logo_url} alt={brand.name} className="h-full w-full object-contain" loading="lazy" />
+                      <img src={brand.logo_url} alt={brand.name} className="h-full w-full object-contain" />
                     ) : (
                       <Image className="h-5 w-5 text-muted-foreground/50" />
                     )}
@@ -320,7 +320,6 @@ function BrandEditor({ brand, isNew, onSaved, onBack }) {
                   src={logoPreview}
                   alt="Brand logo preview"
                   className="h-full w-full object-contain p-1"
-                  loading="lazy"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-1 text-muted-foreground/50">
@@ -527,7 +526,7 @@ export function BrandSettingsPage() {
           </SidebarSection>
         </Sidebar>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 max-w-2xl">
+        <main className="flex-1 overflow-auto p-8 max-w-2xl">
           {loading ? (
             <div className="flex h-40 items-center justify-center text-muted-foreground">
               Loading brands…

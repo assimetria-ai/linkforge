@@ -4,7 +4,7 @@ const router = express.Router()
 const { authenticate } = require('../../../lib/@system/Helpers/auth')
 const BrandRepo = require('../../../db/repos/@custom/BrandRepo')
 const { validate } = require('../../../lib/@system/Validation')
-const { CreateBrandBody, UpdateBrandBody, UploadLogoBody, BrandIdParams, PaginationQuery } = require('../../../lib/@custom/Validation/schemas/brands')
+const { CreateBrandBody, UpdateBrandBody, UploadLogoBody, BrandIdParams, PaginationQuery } = require('../../../lib/@custom/Validation/schemas/@custom/brands')
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ function isValidLogoDataUrl(str) {
 
 // ─── GET /api/brands ─────────────────────────────────────────────────────────
 // Returns brands belonging to the authenticated user
-router.get('/brands', authenticate, validate({ query: PaginationQuery }), async (req, res, next) => {
+router.get('/brands', authenticate, async (req, res, next) => {
   try {
     const brands = await BrandRepo.findAll({ user_id: req.user.id })
     res.json({ brands })
@@ -38,7 +38,7 @@ router.get('/brands', authenticate, validate({ query: PaginationQuery }), async 
 })
 
 // ─── GET /api/brands/:id ─────────────────────────────────────────────────────
-router.get('/brands/:id', authenticate, validate({ params: BrandIdParams }), async (req, res, next) => {
+router.get('/brands/:id', authenticate, async (req, res, next) => {
   try {
     const brand = await BrandRepo.findById(req.params.id)
     if (!brand) return res.status(404).json({ message: 'Brand not found' })
@@ -123,7 +123,7 @@ router.post('/brands/:id/logo', authenticate, validate({ params: BrandIdParams, 
 
 // ─── DELETE /api/brands/:id/logo ────────────────────────────────────────────
 // Remove the brand logo
-router.delete('/brands/:id/logo', authenticate, validate({ params: BrandIdParams }), async (req, res, next) => {
+router.delete('/brands/:id/logo', authenticate, async (req, res, next) => {
   try {
     const brand = await BrandRepo.findById(req.params.id)
     if (!brand) return res.status(404).json({ message: 'Brand not found' })
@@ -144,7 +144,7 @@ router.delete('/brands/:id/logo', authenticate, validate({ params: BrandIdParams
 })
 
 // ─── DELETE /api/brands/:id — soft delete ────────────────────────────────────
-router.delete('/brands/:id', authenticate, validate({ params: BrandIdParams }), async (req, res, next) => {
+router.delete('/brands/:id', authenticate, async (req, res, next) => {
   try {
     const brand = await BrandRepo.findById(req.params.id)
     if (!brand) return res.status(404).json({ message: 'Brand not found' })
@@ -174,7 +174,7 @@ router.get('/brands/deleted', authenticate, validate({ query: PaginationQuery })
 })
 
 // ─── POST /api/brands/:id/restore — restore soft-deleted brand ───────────────
-router.post('/brands/:id/restore', authenticate, validate({ params: BrandIdParams }), async (req, res, next) => {
+router.post('/brands/:id/restore', authenticate, async (req, res, next) => {
   try {
     const brand = await BrandRepo.findByIdIncludingDeleted(req.params.id)
     if (!brand) return res.status(404).json({ message: 'Brand not found' })

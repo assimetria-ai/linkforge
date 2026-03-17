@@ -18,8 +18,7 @@ class TestTask extends BaseTask {
 
   async execute() {
     logger.info('[TestTask] running')
-    // Implement your task logic here
-    // Example: await db.query(...), await api.call(...), etc.
+    // TODO: replace with real logic
     logger.info('[TestTask] completed')
   }
 }

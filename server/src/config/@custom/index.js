@@ -5,8 +5,9 @@
 const systemInfo = require('../@system/info')
 
 const customInfo = {
-  name: 'Linkforge',
-  url: process.env.APP_URL || 'https://linkforge.io',
+  // Override @system values here, e.g.:
+  // name: 'MyProduct',
+  // url: 'https://myproduct.com',
 }
 
 module.exports = { ...systemInfo, ...customInfo }

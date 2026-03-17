@@ -1,4 +1,3 @@
-// @ts-nocheck
 // @custom — Blog admin panel: create, edit, publish articles
 import { useEffect, useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
@@ -195,7 +194,7 @@ function PostFormModal({ post, onClose, onSaved }: PostFormProps) {
             </div>
 
             {/* Category + Author row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Category</label>
                 <select
@@ -405,7 +404,7 @@ export function BlogAdminPage() {
         </Sidebar>
 
         {/* Main */}
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-auto p-8">
           {/* Header row */}
           <div className="mb-8 flex items-center justify-between gap-4">
             <div>

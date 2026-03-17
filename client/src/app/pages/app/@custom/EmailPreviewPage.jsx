@@ -68,8 +68,8 @@ export function EmailPreviewPage() {
       <main className="container py-8">
 
         {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="min-w-0">
+        <div className="flex items-center justify-between mb-6">
+          <div>
             <div className="flex items-center gap-2 mb-1">
               <Link
                 to="/app/emails"
@@ -79,17 +79,17 @@ export function EmailPreviewPage() {
                 Email Tracking
               </Link>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-              <Eye className="h-5 w-5 sm:h-6 sm:w-6" />
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Eye className="h-6 w-6" />
               Email Template Preview
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               Preview every transactional email template would appear in the inbox
             </p>
           </div>
           <button
             onClick={reload}
-            className="flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 sm:py-1.5 text-sm font-medium hover:bg-muted shrink-0 w-full sm:w-auto"
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Reload
@@ -102,20 +102,20 @@ export function EmailPreviewPage() {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex gap-6">
           {/* Sidebar: template selector */}
-          <aside className="w-full lg:w-52 shrink-0">
+          <aside className="w-52 shrink-0">
             <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
               Templates
             </p>
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1.5">
+              <div className="space-y-1.5">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="h-9 rounded-md bg-muted animate-pulse" />
                 ))}
               </div>
             ) : (
-              <nav className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-0.5 lg:space-y-0.5">
+              <nav className="space-y-0.5">
                 {templateNames.map((name) => (
                   <button
                     key={name}
@@ -128,7 +128,7 @@ export function EmailPreviewPage() {
                     )}
                   >
                     <Mail className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{templateLabel(name)}</span>
+                    {templateLabel(name)}
                   </button>
                 ))}
               </nav>
@@ -162,7 +162,7 @@ export function EmailPreviewPage() {
                     src={previewUrl(selected)}
                     title={`Preview: ${templateLabel(selected)}`}
                     className="w-full"
-                    style={{ height: '500px', border: 'none' }}
+                    style={{ height: '640px', border: 'none' }}
                     sandbox="allow-same-origin"
                   />
                 </div>

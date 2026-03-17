@@ -12,20 +12,5 @@ const BrandRepo = require('./BrandRepo')
 const CollaboratorRepo = require('./CollaboratorRepo')
 const BlogPostRepo = require('./BlogPostRepo')
 const UserRepo = require('./UserRepo')
-const TeamRepo = require('./TeamRepo')
-const PermissionRepo = require('./PermissionRepo')
-const EmailLogRepo = require('./EmailLogRepo')
-const FileUploadRepo = require('./FileUploadRepo')
 
-module.exports = { 
-  ApiKeyRepo, 
-  AuditLogRepo, 
-  BlogPostRepo, 
-  BrandRepo, 
-  CollaboratorRepo, 
-  UserRepo,
-  TeamRepo,
-  PermissionRepo,
-  EmailLogRepo,
-  FileUploadRepo
-}
+module.exports = { ApiKeyRepo, AuditLogRepo, BlogPostRepo, BrandRepo, CollaboratorRepo, UserRepo }

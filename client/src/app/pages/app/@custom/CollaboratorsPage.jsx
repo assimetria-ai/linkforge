@@ -255,7 +255,7 @@ export function CollaboratorsPage() {
           </SidebarSection>
         </Sidebar>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        <main className="flex-1 overflow-auto p-8 max-w-5xl">
           {/* Page header */}
           <div className="mb-8 flex items-start justify-between">
             <div>
@@ -300,7 +300,7 @@ export function CollaboratorsPage() {
 
           {/* Summary stats */}
           {!loading && collaborators.length > 0 && (
-            <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="mb-6 grid grid-cols-3 gap-4">
               <div className="rounded-lg border border-border bg-card p-4">
                 <div className="flex items-center gap-2">
                   <UserCheck className="h-4 w-4 text-green-500" />

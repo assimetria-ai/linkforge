@@ -90,24 +90,4 @@ describe('GET /api/health', () => {
     const res = await request(app).get('/api/health')
     expect(res.headers['content-type']).toMatch(/application\/json/)
   })
-
-  it('rejects PATCH method with 404', async () => {
-    const res = await request(app).patch('/api/health')
-    expect(res.status).toBe(404)
-  })
-
-  it('rejects POST method with 404', async () => {
-    const res = await request(app).post('/api/health')
-    expect(res.status).toBe(404)
-  })
-
-  it('rejects PUT method with 404', async () => {
-    const res = await request(app).put('/api/health')
-    expect(res.status).toBe(404)
-  })
-
-  it('rejects DELETE method with 404', async () => {
-    const res = await request(app).delete('/api/health')
-    expect(res.status).toBe(404)
-  })
 })

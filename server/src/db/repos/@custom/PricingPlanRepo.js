@@ -1,4 +1,4 @@
-const db = require('../../../lib/@system/PostgreSQL')
+const db = require('../../lib/@system/PostgreSQL')
 
 const PricingPlanRepo = {
   // List all active plans (public)

@@ -39,12 +39,12 @@ function AccordionItem({ item, isOpen, onToggle }) {
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between gap-3 sm:gap-4 py-4 sm:py-5 text-left text-sm sm:text-base font-medium transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="flex w-full items-center justify-between gap-3 py-4 sm:py-5 text-left text-sm sm:text-base font-medium transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
-        <span className="leading-snug">{item.question}</span>
+        <span>{item.question}</span>
         <ChevronDown
           className={cn(
-            'h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground transition-transform duration-200',
+            'h-5 w-5 flex-shrink-0 text-muted-foreground transition-transform duration-200',
             isOpen && 'rotate-180',
           )}
         />
@@ -53,10 +53,10 @@ function AccordionItem({ item, isOpen, onToggle }) {
       <div
         className={cn(
           'overflow-hidden transition-all duration-200',
-          isOpen ? 'max-h-96 pb-4 sm:pb-5' : 'max-h-0',
+          isOpen ? 'max-h-96 pb-5' : 'max-h-0',
         )}
       >
-        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pr-6">{item.answer}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{item.answer}</p>
       </div>
     </div>
   )

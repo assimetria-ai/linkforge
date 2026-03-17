@@ -1,92 +1,67 @@
 import { Route } from 'react-router-dom'
-import { LinksPage } from '../../pages/app/@custom/LinksPage'
-import { LinkAnalyticsPage } from '../../pages/app/@custom/LinkAnalyticsPage'
-import { UTMBuilderPage } from '../../pages/app/@custom/UTMBuilderPage'
-import { TeamsPage } from '../../pages/app/@custom/TeamsPage'
-import { TeamDetailPage } from '../../pages/app/@custom/TeamDetailPage'
-import { CustomDomainsPage } from '../../pages/app/@custom/CustomDomainsPage'
-import { AcceptInvitePage } from '../../pages/static/@custom/AcceptInvitePage'
-import WebhooksPage from '../../pages/app/@custom/WebhooksPage'
-import { DashboardPage } from '../../pages/app/@custom/DashboardPage'
+import { ErrorTrackingPage } from '../../pages/app/@custom/ErrorTrackingPage'
+import { CollaboratorsPage } from '../../pages/app/@custom/CollaboratorsPage'
+import { BrandSettingsPage } from '../../pages/app/@custom/BrandSettingsPage'
+import { ChatbasePage } from '../../pages/app/@custom/ChatbasePage'
+import { EmailTrackingPage } from '../../pages/app/@custom/EmailTrackingPage'
+import { EmailPreviewPage } from '../../pages/app/@custom/EmailPreviewPage'
 import { PrivateRoute } from '@/app/components/@system/PrivateRoute/PrivateRoute'
 
-// @custom — Linkforge product-specific routes
+// @custom — add your product-specific routes here.
+// Wrap with <PrivateRoute> for authenticated pages.
 export const customRoutes = [
   <Route
-    key="dashboard"
-    path="/app/dashboard"
+    key="error-tracking"
+    path="/app/errors"
     element={
       <PrivateRoute>
-        <DashboardPage />
+        <ErrorTrackingPage />
       </PrivateRoute>
     }
   />,
   <Route
-    key="links"
-    path="/app/links"
+    key="collaborators"
+    path="/app/collaborators"
     element={
       <PrivateRoute>
-        <LinksPage />
+        <CollaboratorsPage />
       </PrivateRoute>
     }
   />,
   <Route
-    key="link-analytics"
-    path="/app/links/:id"
+    key="brand-settings"
+    path="/app/brand"
     element={
       <PrivateRoute>
-        <LinkAnalyticsPage />
+        <BrandSettingsPage />
       </PrivateRoute>
     }
   />,
   <Route
-    key="utm-builder"
-    path="/app/utm"
+    key="chatbase"
+    path="/app/chatbase"
     element={
       <PrivateRoute>
-        <UTMBuilderPage />
+        <ChatbasePage />
       </PrivateRoute>
     }
   />,
   <Route
-    key="teams"
-    path="/app/teams"
+    key="email-tracking"
+    path="/app/emails"
     element={
-      <PrivateRoute>
-        <TeamsPage />
+      <PrivateRoute role="admin">
+        <EmailTrackingPage />
       </PrivateRoute>
     }
   />,
   <Route
-    key="team-detail"
-    path="/app/teams/:id"
+    key="email-preview"
+    path="/app/emails/preview"
     element={
-      <PrivateRoute>
-        <TeamDetailPage />
+      <PrivateRoute role="admin">
+        <EmailPreviewPage />
       </PrivateRoute>
     }
-  />,
-  <Route
-    key="custom-domains"
-    path="/app/domains"
-    element={
-      <PrivateRoute>
-        <CustomDomainsPage />
-      </PrivateRoute>
-    }
-  />,
-  <Route
-    key="webhooks"
-    path="/app/webhooks"
-    element={
-      <PrivateRoute>
-        <WebhooksPage />
-      </PrivateRoute>
-    }
-  />,
-  <Route
-    key="accept-invite"
-    path="/accept-invite"
-    element={<AcceptInvitePage />}
   />,
 ]

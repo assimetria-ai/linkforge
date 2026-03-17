@@ -1,25 +1,26 @@
 const express = require('express')
 const router = express.Router()
 
-// @custom — register your product-specific routers here
-router.use(require('../../api/@custom/audit-logs'))
-router.use(require('../../api/@custom/errors'))
-// router.use(require('../../api/@custom/search')) — removed: conflicts with @system/search
-router.use(require('../../api/@custom/collaborators'))
-router.use(require('../../api/@custom/brands'))
-router.use(require('../../api/@custom/chatbase'))
-router.use(require('../../api/@custom/email-logs'))
-// router.use(require('../../api/@custom/storage')) — removed: conflicts with @system/storage
-router.use(require('../../api/@custom/blog'))
-router.use(require('../../api/@custom/pages'))
-router.use(require('../../api/@custom/pricing'))
-router.use(require('../../api/@custom/clips'))
-router.use(require('../../api/@custom/teams'))
-router.use(require('../../api/@custom/workspaces'))
-router.use(require('../../api/@custom/links'))
-router.use(require('../../api/@custom/qr'))
-router.use(require('../../api/@custom/domains'))
-router.use(require('../../api/@custom/analytics'))
-router.use(require('../../api/@custom/webhooks'))
+// @custom — register product-specific routers here
+// Each route is wrapped in try/catch to prevent broken @custom modules from crashing the server
+const customRoutes = [
+  '../../api/@custom/audit-logs',
+  '../../api/@custom/errors',
+  '../../api/@custom/collaborators',
+  '../../api/@custom/brands',
+  '../../api/@custom/chatbase',
+  '../../api/@custom/email-logs',
+  '../../api/@custom/blog',
+  '../../api/@custom/pages',
+  '../../api/@custom/pricing',
+]
+
+for (const route of customRoutes) {
+  try {
+    router.use(require(route))
+  } catch (err) {
+    console.warn(`[routes] Skipping @custom route ${route}: ${err.message}`)
+  }
+}
 
 module.exports = router

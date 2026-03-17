@@ -96,7 +96,7 @@ function EmailDetailModal({ log, onClose }) {
 
         {/* Body */}
         <div className="p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs text-muted-foreground mb-0.5">To</p>
               <p className="font-medium break-all">{log.to_address}</p>
@@ -112,7 +112,7 @@ function EmailDetailModal({ log, onClose }) {
               </div>
             )}
             {log.message_id && (
-              <div className="sm:col-span-2">
+              <div className="col-span-2">
                 <p className="text-xs text-muted-foreground mb-0.5">Message ID</p>
                 <p className="font-mono text-xs break-all">{log.message_id}</p>
               </div>

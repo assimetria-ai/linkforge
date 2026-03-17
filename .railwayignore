@@ -3,7 +3,7 @@ docker-compose.yml
 docker-compose.local.yml
 client/node_modules
 server/node_modules
-# client/dist is NOT ignored — pre-built for deploy
+client/dist
 *.local
 .env
 .env.*

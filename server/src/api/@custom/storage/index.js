@@ -14,8 +14,7 @@ const S3 = require('../../../lib/@system/AWS/S3')
 const FileUploadRepo = require('../../../db/repos/@custom/FileUploadRepo')
 const logger = require('../../../lib/@system/Logger')
 const { validate } = require('../../../lib/@system/Validation')
-const { PresignBody, FileIdParams, ConfirmUploadBody } = require('../../../lib/@custom/Validation/schemas/storage')
-const { uploadLimiter } = require('../../../lib/@system/RateLimit')
+const { PresignBody, FileIdParams, ConfirmUploadBody } = require('../../../lib/@custom/Validation/schemas/@custom/storage')
 
 // ── Allowed MIME types (restrict to safe set) ─────────────────────────────────
 
@@ -53,7 +52,7 @@ const MAX_SIZE_BYTES = 100 * 1024 * 1024 // 100 MB
  * Response:
  *   { file_id, upload_url, key, bucket, expires_at, public_url }
  */
-router.post('/storage/presign', authenticate, uploadLimiter, validate({ body: PresignBody }), async (req, res, next) => {
+router.post('/storage/presign', authenticate, validate({ body: PresignBody }), async (req, res, next) => {
   try {
     const { filename, content_type, size, folder } = req.body
 
@@ -101,7 +100,7 @@ router.post('/storage/presign', authenticate, uploadLimiter, validate({ body: Pr
  *   size_bytes {number} — actual file size after upload
  *   verify     {boolean} — check S3 existence before confirming (default: false)
  */
-router.patch('/storage/:fileId/confirm', authenticate, uploadLimiter, validate({ params: FileIdParams, body: ConfirmUploadBody }), async (req, res, next) => {
+router.patch('/storage/:fileId/confirm', authenticate, validate({ params: FileIdParams, body: ConfirmUploadBody }), async (req, res, next) => {
   try {
     const fileId = req.params.fileId
 
