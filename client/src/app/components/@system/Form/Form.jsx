@@ -1,4 +1,5 @@
 // @system — form field primitives with mobile-optimized inputs
+import { forwardRef } from 'react'
 import { Label } from '@radix-ui/react-label'
 import { cn } from '@/app/lib/@system/utils'
 
@@ -17,9 +18,10 @@ function FormField({ label, error, required, children, className }) {
   )
 }
 
-function Input({ className, error, ...props }) {
+const Input = forwardRef(function Input({ className, error, ...props }, ref) {
   return (
     <input
+      ref={ref}
       className={cn(
         // Base styles
         'flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm sm:text-base ring-offset-background',
@@ -40,7 +42,7 @@ function Input({ className, error, ...props }) {
       {...props}
     />
   )
-}
+})
 
 function Textarea({ className, error, ...props }) {
   return (
@@ -66,3 +68,15 @@ function Textarea({ className, error, ...props }) {
 }
 
 export { FormField, Input, Textarea }
+
+// Simple Form wrapper
+function Form({ onSubmit, children, ...props }) {
+  return <form onSubmit={onSubmit} {...props}>{children}</form>
+}
+
+// Simple FormLabel
+function FormLabel({ children, ...props }) {
+  return <label className="text-sm font-medium leading-none" {...props}>{children}</label>
+}
+
+export { Form, FormLabel }

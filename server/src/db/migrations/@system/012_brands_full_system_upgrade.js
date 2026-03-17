@@ -48,18 +48,34 @@ exports.up = async (db) => {
   console.log('[012] ✓ brands: status constraint updated (active, draft, archived, deleted, inactive)')
 
   // ── 4. Brand hasMany Collaborators – add brand_id FK to collaborators ───────
-  await db.none(`
-    ALTER TABLE collaborators
-      ADD COLUMN IF NOT EXISTS brand_id INTEGER REFERENCES brands(id) ON DELETE CASCADE;
-  `)
-  await db.none('CREATE INDEX IF NOT EXISTS idx_collaborators_brand_id ON collaborators(brand_id)')
-  console.log('[012] ✓ collaborators: added brand_id FK')
+  try {
+    await db.none(`
+      ALTER TABLE collaborators
+        ADD COLUMN IF NOT EXISTS brand_id INTEGER REFERENCES brands(id) ON DELETE CASCADE;
+    `)
+    await db.none('CREATE INDEX IF NOT EXISTS idx_collaborators_brand_id ON collaborators(brand_id)')
+    console.log('[012] ✓ collaborators: added brand_id FK')
+  } catch (err) {
+    if (err.message && err.message.includes('collaborators')) {
+      console.warn('[012] ⚠ collaborators table does not exist – skipping brand_id FK')
+    } else {
+      throw err
+    }
+  }
 }
 
 exports.down = async (db) => {
   // Remove brand_id from collaborators
-  await db.none('DROP INDEX IF EXISTS idx_collaborators_brand_id')
-  await db.none('ALTER TABLE collaborators DROP COLUMN IF EXISTS brand_id')
+  try {
+    await db.none('DROP INDEX IF EXISTS idx_collaborators_brand_id')
+    await db.none('ALTER TABLE collaborators DROP COLUMN IF EXISTS brand_id')
+  } catch (err) {
+    if (err.message && err.message.includes('collaborators')) {
+      console.warn('[012] ⚠ collaborators table does not exist – skipping brand_id revert')
+    } else {
+      throw err
+    }
+  }
 
   // Drop new constraint, restore simple one
   await db.none(`

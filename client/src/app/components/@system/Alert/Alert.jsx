@@ -11,27 +11,16 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: 'bg-background border-border text-foreground',
-<<<<<<< HEAD
         info: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100',
         success: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100',
         warning: 'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100',
         destructive: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100',
-=======
-        info: 'bg-blue-50 border-blue-200 text-blue-800',
-        success: 'bg-green-50 border-green-200 text-green-800',
-        warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-        destructive: 'bg-red-50 border-red-200 text-red-800',
->>>>>>> e680e9061bfde40992c78336d4fe404d548c4363
       },
     },
     defaultVariants: {
       variant: 'default',
     },
   },
-<<<<<<< HEAD
-)
-=======
->>>>>>> e680e9061bfde40992c78336d4fe404d548c4363
 )
 
 const ICONS = {
@@ -62,19 +51,13 @@ export function Alert({ className, variant = 'default', title, dismissible, onCl
       </div>
       {(dismissible || onClose) && (
         <button
-<<<<<<< HEAD
-          onClick={() => setDismissed(true)}
+          onClick={handleDismiss}
           className={cn(
             'flex-shrink-0 opacity-70 hover:opacity-100 active:opacity-100 transition-opacity',
-            'touch-target min-h-touch min-w-touch flex items-center justify-center', // WCAG 2.5.5 compliant
-            '-mr-2 sm:-mr-1', // Adjust positioning for larger mobile touch target
+            'touch-target min-h-touch min-w-touch flex items-center justify-center',
+            '-mr-2 sm:-mr-1',
           )}
           aria-label="Dismiss alert"
-=======
-          onClick={handleDismiss}
-          className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
-          aria-label="Dismiss"
->>>>>>> e680e9061bfde40992c78336d4fe404d548c4363
         >
           <X className="h-5 w-5 sm:h-4 sm:w-4" />
         </button>

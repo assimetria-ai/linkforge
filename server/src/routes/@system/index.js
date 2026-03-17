@@ -1,6 +1,10 @@
 const express = require('express')
 const router = express.Router()
 
+// Dedicated onboarding/system flow contract routes.
+// Mounted first so they take precedence over legacy endpoints with overlapping paths.
+router.use(require('./onboarding-flow'))
+
 router.use(require('../../api/@system/ping'))
 router.use(require('../../api/@system/health'))
 router.use(require('../../api/@system/csrf'))

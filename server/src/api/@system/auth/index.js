@@ -8,6 +8,7 @@ const express = require('express')
 const router = express.Router()
 const crypto = require('crypto')
 const bcrypt = require('bcryptjs')
+const sanitizeHtml = require('sanitize-html')
 const { authenticate, extractAccessToken } = require('../../../lib/@system/Helpers/auth')
 const UserRepo = require('../../../db/repos/@system/UserRepo')
 const RefreshTokenRepo = require('../../../db/repos/@system/RefreshTokenRepo')
@@ -15,6 +16,8 @@ const { signAccessTokenAsync } = require('../../../lib/@system/Helpers/jwt')
 const { loginLimiter } = require('../../../lib/@system/RateLimit')
 const { validate } = require('../../../lib/@system/Validation')
 const { LoginBody } = require('../../../lib/@system/Validation/schemas/@system/sessions')
+const { RegisterBody } = require('../../../lib/@system/Validation/schemas/@system/user')
+const { validatePassword } = require('../../../lib/@system/Helpers/password-validator')
 const {
   MAX_ATTEMPTS,
   getLockoutSecondsRemaining,
@@ -47,15 +50,17 @@ function setRefreshCookie(res, token) {
 }
 
 // POST /api/auth/register
-router.post('/auth/register', async (req, res, next) => {
+router.post('/auth/register', validate({ body: RegisterBody }), async (req, res, next) => {
   try {
     const { email, password, name } = req.body
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' })
-    }
+    const pwCheck = validatePassword(password)
+    if (!pwCheck.valid) return res.status(400).json({ message: pwCheck.message })
 
     const normalizedEmail = email.toLowerCase()
+    const sanitizedName = typeof name === 'string'
+      ? sanitizeHtml(name, { allowedTags: [], allowedAttributes: {} }).trim() || null
+      : null
 
     const existing = await UserRepo.findByEmail(normalizedEmail)
     if (existing) {
@@ -63,7 +68,7 @@ router.post('/auth/register', async (req, res, next) => {
     }
 
     const password_hash = await bcrypt.hash(password, 12)
-    const user = await UserRepo.create({ email: normalizedEmail, name: name || null, password_hash })
+    const user = await UserRepo.create({ email: normalizedEmail, name: sanitizedName, password_hash })
 
     const accessToken = await signAccessTokenAsync({ userId: user.id })
     const { token: refreshToken } = await RefreshTokenRepo.create({ userId: user.id })
@@ -96,6 +101,13 @@ router.post('/auth/login', loginLimiter, validate({ body: LoginBody }), async (r
     if (!user) {
       await incrementFailedAttempts(normalizedEmail)
       return res.status(401).json({ message: 'Invalid credentials' })
+    }
+
+    // OAuth-only users have no password_hash — reject gracefully instead of
+    // letting bcrypt.compare throw on null (which causes a 500).
+    if (!user.password_hash) {
+      await incrementFailedAttempts(normalizedEmail)
+      return res.status(401).json({ message: 'This account uses social login. Please sign in with Google or GitHub.' })
     }
 
     const valid = await bcrypt.compare(password, user.password_hash)

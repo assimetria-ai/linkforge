@@ -1,7 +1,7 @@
 // @system — admin API calls (owner-only)
 // Do not modify this file. Add product-specific admin calls in @custom/
 
-import { apiRequest } from './utils'
+import { apiRequest } from './utils.js'
 
 export const getAdminUsersStats = (params) => {
   const qs = new URLSearchParams()

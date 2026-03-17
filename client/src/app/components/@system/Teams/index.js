@@ -3,9 +3,9 @@
  * Export all team-related components
  */
 
-export { TeamList } from './TeamList'
-export { MemberList } from './MemberList'
-export { InvitationManager } from './InvitationManager'
-export { CreateTeamModal } from './CreateTeamModal'
-export { PendingInvitations } from './PendingInvitations'
-export { InvitationBadge } from './InvitationBadge'
+export { TeamList } from './TeamList.jsx'
+export { MemberList } from './MemberList.jsx'
+export { InvitationManager } from './InvitationManager.jsx'
+export { CreateTeamModal } from './CreateTeamModal.jsx'
+export { PendingInvitations } from './PendingInvitations.jsx'
+export { InvitationBadge } from './InvitationBadge.jsx'
