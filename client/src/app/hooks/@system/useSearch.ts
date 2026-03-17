@@ -112,7 +112,7 @@ export function useSearch<T = SearchHit>(options: UseSearchOptions<T>): UseSearc
           return
         }
 
-        const data = res.data
+        const data = res.data as SearchResult<T>
         setHits(data.hits)
         setTotal(data.total)
         setPageState(data.page)
