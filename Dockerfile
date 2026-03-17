@@ -1,33 +1,22 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  Assimetria Product Template — Root Dockerfile  (multi-stage, production-ready)
+#  Product Template — Root Dockerfile  (multi-stage, production-ready)
 #
-#  Produces a single image that:
-#    1. Builds the React/Vite frontend (dist/)
-#    2. Bundles the Node.js/Express backend
-#    3. Serves static assets from the backend (or a separate nginx is preferred)
+#  Single container: nginx (port 80) fronts the Node.js backend (port 4000).
+#    Stage 1 (client-build): webpack frontend → client/dist/
+#    Stage 2 (server-deps):  Node.js production dependencies
+#    Stage 3 (runner):       nginx + Node.js + tini
 #
-#  Typical usage
+#  Usage:
 #    docker build -t product-template .
-#    docker run -p 4000:4000 --env-file .env product-template
+#    docker run -p 80:80 --env-file .env product-template
 #
-#  Build targets
+#  Build targets:
+#    --target client-build  → only webpack build (CI cache layer)
 #    --target server-deps   → only production server deps (CI cache layer)
-#    --target client-build  → only Vite build (CI cache layer)
 #    --target runner        → final production image (default)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Shared base ───────────────────────────────────────────────────────────────
-FROM node:20-alpine AS base
-ARG CACHEBUST=1
-RUN apk add --no-cache tini postgresql-client
-
-# ── Stage 1: server production dependencies ───────────────────────────────────
-FROM base AS server-deps
-WORKDIR /app/server
-COPY server/package*.json ./
-RUN npm ci --omit=dev --ignore-scripts
-
-# ── Stage 2: client build ─────────────────────────────────────────────────────
+# ── Stage 1: client build ─────────────────────────────────────────────────────
 FROM node:20-alpine AS client-build
 WORKDIR /app/client
 
@@ -37,19 +26,22 @@ RUN npm ci --ignore-scripts
 
 COPY client/ ./
 
-# Accept API URL at build time; defaults to relative path (same host)
-ARG VITE_API_URL=/api
-ENV VITE_API_URL=${VITE_API_URL}
-
 RUN npm run build
 
+# ── Stage 2: server production dependencies ───────────────────────────────────
+FROM node:20-alpine AS server-deps
+WORKDIR /app/server
+
+COPY server/package*.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
 # ── Stage 3: final runner ─────────────────────────────────────────────────────
-FROM base AS runner
+FROM node:20-alpine AS runner
+
+ARG CACHEBUST=1
+RUN apk add --no-cache tini nginx postgresql-client
 
 WORKDIR /app
-
-# Non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Server production deps
 COPY --from=server-deps /app/server/node_modules ./server/node_modules
@@ -58,18 +50,24 @@ COPY --from=server-deps /app/server/node_modules ./server/node_modules
 COPY server/src/ ./server/src/
 COPY server/package*.json ./server/
 
-# Built frontend assets (served by Express as static files or a CDN)
-# Server looks for static files at server/src/../public = server/public
-COPY --from=client-build /app/client/dist ./server/public
+# Built frontend assets → nginx serves from here
+COPY --from=client-build /app/client/dist /usr/share/nginx/html
 
-RUN chown -R appuser:appgroup /app
-USER appuser
+# Landing page
+COPY landing.html /usr/share/nginx/html/landing.html
+
+# nginx config — Alpine uses http.d/ (not conf.d/) for server blocks
+RUN rm -f /etc/nginx/http.d/default.conf 2>/dev/null || true
+COPY nginx.production.conf /etc/nginx/http.d/default.conf
+
+# Startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 ENV NODE_ENV=production \
-    PORT=4000 \
-    STATIC_DIR=/app/public
+    PORT=3001
 
-EXPOSE 4000
+EXPOSE 80
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "server/src/db/migrations/@system/start.js"]
+CMD ["/start.sh"]
