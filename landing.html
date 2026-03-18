@@ -1,10 +1,616 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Splice</title>
-  <style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f8fafc}h1{font-size:2rem;color:#1e293b}</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linkforge — Links Engineered to Convert</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="description" content="Create, manage, and track short links that drive results. Linkforge gives you analytics, custom domains, and team collaboration tools to turn every link into a growth engine.">
+<meta property="og:title" content="Linkforge — Links Engineered to Convert">
+<meta property="og:description" content="Create, manage, and track short links that drive results. Linkforge gives you analytics, custom domains, and team collaboration tools to turn every link into a growth engine.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/og-thumbnail.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Linkforge — Links Engineered to Convert">
+<meta name="twitter:description" content="Create, manage, and track short links that drive results. Linkforge gives you analytics, custom domains, and team collaboration tools to turn every link into a growth engine.">
+<meta name="twitter:image" content="/og-thumbnail.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#3A8BFD;--primary-hover:#2B7AEB;--primary-dark:#1D6AD8;
+  --secondary:#1E3A5F;--accent:#00D4AA;--success:#10B981;--warning:#F59E0B;--error:#EF4444;
+  --bg:#FFFFFF;--bg-alt:#F8FAFC;--surface:#FFFFFF;--border:#E2E8F0;
+  --text:#0f172a;--text-secondary:#64748B;--text-muted:#94A3B8;
+  --radius-sm:4px;--radius:8px;--radius-md:12px;--radius-lg:16px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 24px rgba(0,0,0,0.12);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--text);line-height:1.6;background:var(--bg)}
+a{text-decoration:none;color:var(--primary)}
+img{max-width:100%;display:block}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;color:var(--text)}
+.nav-logo img{height:32px;width:auto}
+.nav-links{display:flex;gap:32px;align-items:center}
+.nav-links a{font-size:14px;font-weight:500;color:var(--text-secondary);transition:color .15s}
+.nav-links a:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;border:none;text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover);box-shadow:0 2px 8px rgba(58,139,253,0.3)}
+.btn-secondary{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-secondary:hover{background:rgba(58,139,253,0.08)}
+.btn-ghost{background:transparent;color:var(--text-secondary);padding:10px 16px}
+.btn-ghost:hover{background:var(--bg-alt);color:var(--text)}
+.btn-large{padding:14px 28px;font-size:16px;border-radius:var(--radius-md)}
+.nav-cta{display:flex;gap:12px;align-items:center}
+
+/* HERO */
+.hero{padding:140px 24px 80px;text-align:center;position:relative;overflow:hidden;background:var(--bg)}
+.hero::before{content:'';position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(58,139,253,0.08) 0%,transparent 70%);pointer-events:none}
+.hero-inner{max-width:800px;margin:0 auto;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(58,139,253,0.08);color:var(--primary);border-radius:9999px;font-size:13px;font-weight:600;margin-bottom:24px}
+.hero h1{font-size:56px;font-weight:700;line-height:1.1;letter-spacing:-0.02em;margin-bottom:20px;color:var(--text)}
+.hero h1 span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:18px;color:var(--text-secondary);max-width:560px;margin:0 auto 36px;line-height:1.7}
+.hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.hero-visual{margin-top:64px;max-width:900px;margin-left:auto;margin-right:auto;background:var(--secondary);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-lg)}
+.hero-visual-inner{background:#0F172A;border-radius:var(--radius-md);padding:32px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.hero-stat{background:rgba(58,139,253,0.06);border:1px solid rgba(58,139,253,0.15);border-radius:var(--radius);padding:16px 24px;text-align:center;min-width:140px}
+.hero-stat .val{font-size:28px;font-weight:700;color:#fff}
+.hero-stat .lbl{font-size:12px;font-weight:500;color:var(--text-muted);margin-top:4px}
+
+/* LOGOS BAR */
+.social-proof{padding:48px 24px;background:var(--bg-alt);text-align:center}
+.social-proof p{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:24px}
+.logos-row{display:flex;gap:48px;justify-content:center;align-items:center;flex-wrap:wrap;opacity:0.5}
+.logos-row span{font-size:18px;font-weight:700;color:var(--text-secondary)}
+
+/* FEATURES */
+.features{padding:96px 24px;background:var(--bg)}
+.section-header{text-align:center;max-width:600px;margin:0 auto 64px}
+.section-label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--primary);margin-bottom:12px}
+.section-header h2{font-size:36px;font-weight:700;line-height:1.2;letter-spacing:-0.01em;margin-bottom:16px}
+.section-header p{font-size:16px;color:var(--text-secondary);line-height:1.7}
+.features-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.feature-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px;transition:box-shadow .2s,transform .2s}
+.feature-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.feature-icon{width:44px;height:44px;border-radius:var(--radius);background:rgba(58,139,253,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--primary)}
+.feature-icon svg{width:22px;height:22px}
+.feature-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--text)}
+.feature-card p{font-size:14px;color:var(--text-secondary);line-height:1.6}
+
+/* HOW IT WORKS */
+.how{padding:96px 24px;background:var(--bg-alt)}
+.how-steps{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:48px}
+.how-step{text-align:center}
+.how-num{width:48px;height:48px;border-radius:9999px;background:var(--primary);color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.how-step h3{font-size:18px;font-weight:600;margin-bottom:8px}
+.how-step p{font-size:14px;color:var(--text-secondary);line-height:1.6}
+
+/* PRICING */
+.pricing{padding:96px 24px;background:var(--bg)}
+.pricing-grid{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:start}
+.price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:32px;position:relative;transition:box-shadow .2s}
+.price-card:hover{box-shadow:var(--shadow-md)}
+.price-card.popular{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.price-card.popular::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;font-size:12px;font-weight:600;padding:4px 14px;border-radius:9999px}
+.price-card .tier{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px}
+.price-card .price{font-size:40px;font-weight:700;color:var(--text);margin-bottom:4px}
+.price-card .price span{font-size:16px;font-weight:400;color:var(--text-secondary)}
+.price-card .price-desc{font-size:14px;color:var(--text-secondary);margin-bottom:24px}
+.price-features{list-style:none;margin-bottom:28px;display:flex;flex-direction:column;gap:12px}
+.price-features li{font-size:14px;color:var(--text-secondary);display:flex;align-items:center;gap:10px}
+.price-features li svg{color:var(--success);flex-shrink:0}
+.price-card .btn{width:100%;justify-content:center}
+
+/* TESTIMONIALS */
+.testimonials{padding:96px 24px;background:var(--bg-alt)}
+.testimonials-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.testimonial{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px}
+.testimonial-stars{display:flex;gap:2px;margin-bottom:16px;color:var(--warning)}
+.testimonial-stars svg{width:16px;height:16px;fill:var(--warning)}
+.testimonial q{display:block;font-size:15px;color:var(--text);line-height:1.7;margin-bottom:20px;font-style:normal}
+.testimonial-author{display:flex;align-items:center;gap:12px}
+.testimonial-avatar{width:40px;height:40px;border-radius:9999px;background:rgba(58,139,253,0.1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:var(--primary)}
+.testimonial-info .name{font-size:14px;font-weight:600;color:var(--text)}
+.testimonial-info .role{font-size:13px;color:var(--text-muted)}
+
+/* CTA */
+.cta{padding:96px 24px;background:var(--bg);text-align:center}
+.cta-inner{max-width:700px;margin:0 auto;padding:64px 48px;background:linear-gradient(135deg,var(--secondary),#0F172A);border-radius:var(--radius-lg);color:#fff}
+.cta-inner h2{font-size:32px;font-weight:700;margin-bottom:16px}
+.cta-inner p{font-size:16px;color:rgba(255,255,255,0.7);margin-bottom:32px}
+.cta-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+.footer{padding:48px 24px;background:var(--bg-alt);border-top:1px solid var(--border)}
+.footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:24px}
+.footer-left{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--text)}
+.footer-left img{height:28px}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-size:14px;color:var(--text-secondary)}
+.footer-links a:hover{color:var(--text)}
+.footer-copy{font-size:13px;color:var(--text-muted)}
+
+/* RESPONSIVE */
+@media(max-width:1024px){
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+  .pricing-grid{grid-template-columns:repeat(2,1fr)}
+  .testimonials-grid{grid-template-columns:repeat(2,1fr)}
+  .hero h1{font-size:42px}
+}
+@media(max-width:768px){
+  .nav-links{display:none}
+  .features-grid{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr;max-width:400px}
+  .testimonials-grid{grid-template-columns:1fr}
+  .how-steps{grid-template-columns:1fr;gap:32px}
+  .hero h1{font-size:32px}
+  .hero p{font-size:16px}
+  .hero-visual-inner{padding:16px}
+  .cta-inner{padding:40px 24px}
+  .footer-inner{flex-direction:column;text-align:center}
+}
+@media(max-width:480px){
+  .hero{padding:100px 16px 48px}
+  .hero-actions{flex-direction:column;align-items:center}
+  .hero h1{font-size:28px}
+}
+
+/* ===== BENEFITS ===== */
+.benefits{padding:100px 24px;background:var(--bg-light)}
+.benefits-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:64px}
+.benefit-item{display:flex;flex-direction:column;gap:16px;padding:28px;border-radius:12px;background:var(--bg-white);border:1px solid var(--border)}
+.benefit-icon{width:48px;height:48px;border-radius:12px;background:rgba(58,139,253,0.08);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0}
+.benefit-item h3{font-size:18px;font-weight:600;color:var(--text-dark)}
+.benefit-item p{font-size:15px;color:var(--text-body);line-height:1.6}
+@media(max-width:768px){.benefits-grid{grid-template-columns:1fr}}
+/* ===== FAQS ===== */
+.faqs{padding:100px 24px;background:var(--bg-white)}
+.faq-list{max-width:720px;margin:64px auto 0;display:flex;flex-direction:column;gap:0}
+.faq-item{border-bottom:1px solid var(--border);padding:24px 0}
+.faq-item:first-child{border-top:1px solid var(--border)}
+.faq-q{font-size:17px;font-weight:600;color:var(--text-dark);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq-a{font-size:15px;color:var(--text-body);line-height:1.65;margin-top:12px}
+</style>
 </head>
-<body><h1>Splice — Coming Soon</h1></body>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#3A8BFD"/><path d="M8 14h4l2-4 2 4h4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Linkforge
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it Works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#testimonials">Reviews</a>
+    </div>
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost">Log in</a>
+      <a href="#" class="btn btn-primary">Get Started Free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Now with AI-powered link optimization
+    </div>
+    <h1>Links <span>engineered</span> to convert</h1>
+    <p>Create, manage, and track short links that drive results. Linkforge gives you the analytics, custom domains, and team collaboration tools to turn every link into a growth engine.</p>
+    <div class="hero-actions">
+      <a href="#" class="btn btn-primary btn-large">Start for Free</a>
+      <a href="#" class="btn btn-secondary btn-large">See Demo</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-visual-inner">
+      <div class="hero-stat"><div class="val">2.4M</div><div class="lbl">Links Created</div></div>
+      <div class="hero-stat"><div class="val">148M</div><div class="lbl">Total Clicks</div></div>
+      <div class="hero-stat"><div class="val">12.4%</div><div class="lbl">Avg CTR</div></div>
+      <div class="hero-stat"><div class="val">99.9%</div><div class="lbl">Uptime</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<section class="social-proof" id="social-proof">
+  <p>Trusted by 10,000+ teams worldwide</p>
+  <div class="logos-row">
+    <span>Vercel</span><span>Stripe</span><span>Linear</span><span>Notion</span><span>Figma</span><span>Raycast</span>
+  </div>
+  <div class="trust-indicators" style="display:flex;justify-content:center;gap:40px;margin-top:24px;flex-wrap:wrap">
+    <div style="text-align:center"><span style="font-size:28px;font-weight:700;color:var(--primary)">50M+</span><br><span style="font-size:13px;color:var(--text-secondary)">Links Created</span></div>
+    <div style="text-align:center"><span style="font-size:28px;font-weight:700;color:var(--primary)">2B+</span><br><span style="font-size:13px;color:var(--text-secondary)">Clicks Tracked</span></div>
+    <div style="text-align:center"><span style="font-size:28px;font-weight:700;color:var(--primary)">99.9%</span><br><span style="font-size:13px;color:var(--text-secondary)">Uptime SLA</span></div>
+    <div style="text-align:center"><span style="font-size:28px;font-weight:700;color:var(--primary)">4.9/5</span><br><span style="font-size:13px;color:var(--text-secondary)">Customer Rating</span></div>
+  </div>
+</section>
+
+<!-- BENEFITS -->
+<section class="benefits" id="benefits">
+  <div class="container">
+    <div class="section-header">
+      <div class="label">Why Linkforge</div>
+      <h2>Every link is a chance to learn and grow.</h2>
+      <p>Linkforge turns your links into intelligence — so you always know what's working and where your audience is coming from.</p>
+    </div>
+    <div class="benefits-grid">
+      <div class="benefit-item">
+        <div class="benefit-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        </div>
+        <h3>Know Exactly Where Traffic Comes From</h3>
+        <p>Stop guessing. See real click data, referrers, and geographic breakdown for every link — so you can double down on what drives results.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <h3>Branded Links That Build Trust</h3>
+        <p>Use your own domain for every short link. Branded URLs get more clicks and make your campaigns look professional — not like spam.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <h3>Links You Can Edit After Sharing</h3>
+        <p>Made a typo? Destination changed? Update the target URL any time — all existing links instantly redirect to the new destination.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Collaborate Without Spreadsheets</h3>
+        <p>Create shared workspaces for your team. Manage campaigns, assign links, and track performance together — without version-controlled link docs.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3>Full Campaign Attribution</h3>
+        <p>Auto-tag every link with UTM parameters. Connect your campaigns to revenue and conversions with complete attribution data in one place.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+        </div>
+        <h3>QR Codes Included</h3>
+        <p>Every link automatically generates a downloadable QR code. Bridge your digital and physical marketing without any extra tools.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-header">
+    <div class="section-label">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A8BFD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Features
+    </div>
+    <h2>Everything you need to manage links at scale</h2>
+    <p>From shortening your first link to running enterprise campaigns, Linkforge has every tool built in.</p>
+  </div>
+  <div class="features-grid">
+
+    <!-- Link Shortening -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </div>
+      <h3>Link Shortening</h3>
+      <p>Create short links with custom slugs (e.g., link.co/launch). Automatic slug generation, bulk link creation, link expiration dates, password protection, and redirect rules (301/302/307).</p>
+    </div>
+
+    <!-- Click Analytics -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      </div>
+      <h3>Click Analytics</h3>
+      <p>Real-time click tracking with geographic breakdown (country, city), device/browser/OS detection, referrer attribution, and time-series charts. Exportable CSV reports.</p>
+    </div>
+
+    <!-- Custom Domains -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+      <h3>Custom Domains</h3>
+      <p>Connect your own domain for branded short links (e.g., go.yourcompany.com). DNS verification, SSL provisioning, and default domain fallback.</p>
+    </div>
+
+    <!-- QR Code Generation -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/><line x1="22" y1="14" x2="22" y2="22"/><line x1="14" y1="22" x2="22" y2="22"/></svg>
+      </div>
+      <h3>QR Code Generation</h3>
+      <p>Auto-generate customizable QR codes for each link. Download as PNG/SVG, customize colors and logo overlay, track QR vs direct clicks separately.</p>
+    </div>
+
+    <!-- Link Management Dashboard -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      </div>
+      <h3>Link Management Dashboard</h3>
+      <p>Central dashboard to view, search, filter, sort, and bulk-manage all links. Tags, folders, favorites, and archive. Pagination and instant search.</p>
+    </div>
+
+    <!-- Team Workspaces -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <h3>Team Workspaces</h3>
+      <p>Multi-user workspaces with role-based access (owner, editor, viewer). Shared link collections, activity logs, and workspace-level analytics.</p>
+    </div>
+
+    <!-- API Access -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <h3>API Access</h3>
+      <p>RESTful API for programmatic link creation, management, and analytics retrieval. API keys with scoped permissions, rate limiting, and webhook support for real-time click event notifications.</p>
+    </div>
+
+    <!-- UTM Builder -->
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+      <h3>UTM Builder</h3>
+      <p>Build, save, and reuse UTM parameter templates for campaign tracking. Auto-append UTM tags to links with preset templates for Google Analytics, Meta Ads, etc.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="section-header">
+    <div class="section-label">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A8BFD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      How it Works
+    </div>
+    <h2>Up and running in minutes</h2>
+    <p>Getting started with Linkforge is simple. No complex setup, no credit card required.</p>
+  </div>
+  <div class="how-steps">
+    <div class="how-step">
+      <div class="how-num">1</div>
+      <h3>Create your workspace</h3>
+      <p>Sign up free, name your workspace, and invite your team. Customize your settings and connect a custom domain in seconds.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num">2</div>
+      <h3>Shorten &amp; customize</h3>
+      <p>Paste any URL, pick a custom slug, add UTM parameters, and generate a QR code — all in one click from the dashboard.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num">3</div>
+      <h3>Track &amp; optimize</h3>
+      <p>Watch clicks roll in with real-time analytics. See where your audience is, which campaigns convert, and double down on what works.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="section-header">
+    <div class="section-label">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A8BFD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Pricing
+    </div>
+    <h2>Simple, transparent pricing</h2>
+    <p>Start free, scale as you grow. No hidden fees, no surprises.</p>
+  </div>
+  <div class="pricing-grid">
+
+    <!-- Free -->
+    <div class="price-card">
+      <div class="tier">Free</div>
+      <div class="price">$0<span>/mo</span></div>
+      <div class="price-desc">Perfect for personal projects</div>
+      <ul class="price-features">
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>1,000 links/month</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Basic click analytics</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>QR code generation</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Link management dashboard</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>UTM builder</li>
+      </ul>
+      <a href="#" class="btn btn-secondary">Get Started</a>
+    </div>
+
+    <!-- Pro -->
+    <div class="price-card popular">
+      <div class="tier">Pro</div>
+      <div class="price">$29<span>/mo</span></div>
+      <div class="price-desc">For growing teams and marketers</div>
+      <ul class="price-features">
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Unlimited links</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Advanced analytics &amp; reports</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>3 custom domains</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Team workspaces (5 members)</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>API access (10K req/mo)</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Priority support</li>
+      </ul>
+      <a href="#" class="btn btn-primary">Start Free Trial</a>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="price-card">
+      <div class="tier">Enterprise</div>
+      <div class="price">Custom</div>
+      <div class="price-desc">For large-scale operations</div>
+      <ul class="price-features">
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Everything in Pro</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Unlimited custom domains</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Unlimited team members</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Unlimited API access</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>SSO &amp; SAML</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Dedicated account manager</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>SLA &amp; uptime guarantee</li>
+      </ul>
+      <a href="#" class="btn btn-secondary">Contact Sales</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials" id="testimonials">
+  <div class="section-header">
+    <div class="section-label">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A8BFD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Testimonials
+    </div>
+    <h2>Loved by marketers worldwide</h2>
+    <p>See what our customers have to say about Linkforge.</p>
+  </div>
+  <div class="testimonials-grid">
+
+    <div class="testimonial">
+      <div class="testimonial-stars">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <q>Linkforge completely transformed our campaign tracking. We went from a spreadsheet of UTM links to a clean dashboard with real-time analytics. The custom domains feature alone saved us hours every week.</q>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">S</div>
+        <div class="testimonial-info">
+          <div class="name">Sarah Mitchell</div>
+          <div class="role">Head of Growth, Scaleway</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial">
+      <div class="testimonial-stars">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <q>The API is incredibly well-documented. We integrated Linkforge into our marketing automation pipeline in under a day. Webhooks for real-time click events are a game changer for our lead scoring.</q>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">M</div>
+        <div class="testimonial-info">
+          <div class="name">Marcus Chen</div>
+          <div class="role">CTO, DataPulse</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial">
+      <div class="testimonial-stars">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <q>We manage over 50,000 links across 12 team members. The workspace permissions and activity logs give us full visibility. QR codes with brand colors are a huge plus for our print campaigns.</q>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">A</div>
+        <div class="testimonial-info">
+          <div class="name">Ana Rodriguez</div>
+          <div class="role">Marketing Director, Bloom Health</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-inner">
+    <h2>Ready to forge better links?</h2>
+    <p>Join thousands of teams using Linkforge to create, track, and optimize every link. Start free today — no credit card required.</p>
+    <div class="cta-actions">
+      <a href="#" class="btn btn-primary btn-large">Get Started Free</a>
+      <a href="#" class="btn btn-large" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)">Talk to Sales</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQS -->
+<section class="faqs" id="faqs">
+  <div class="container">
+    <div class="section-header">
+      <div class="label">FAQ</div>
+      <h2>Questions before you commit?</h2>
+      <p>Here are the answers to what teams ask most before signing up.</p>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">Can I use my own custom domain for short links?</div>
+        <div class="faq-a">Yes. Connect any domain you own and all your short links will use it (e.g. go.yourbrand.com/promo). Custom domains are available on the Pro and Enterprise plans.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Do links expire?</div>
+        <div class="faq-a">Links never expire by default. You can optionally set an expiry date or click limit on any link — after which it redirects to a custom expiry page of your choice.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What analytics data does Linkforge capture?</div>
+        <div class="faq-a">Every click is logged with timestamp, referring URL, country, device type, and browser. You can view this data in the dashboard, filter by date range, and export as CSV.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is there a public API?</div>
+        <div class="faq-a">Yes. Linkforge offers a full REST API for creating, updating, and retrieving link data programmatically. API access is available on Pro and above.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I edit a link's destination after it's been shared?</div>
+        <div class="faq-a">Absolutely. You can change the destination URL at any time. All existing clicks will redirect to the updated destination immediately — no broken links.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is Linkforge free to start?</div>
+        <div class="faq-a">Yes. The Free plan includes 500 links and 10,000 clicks per month with basic analytics. No credit card required. Upgrade any time as you grow.</div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#3A8BFD"/><path d="M8 14h4l2-4 2 4h4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Linkforge
+    </div>
+    <div class="footer-links">
+      <a href="#">Features</a>
+      <a href="#">Pricing</a>
+      <a href="#">Docs</a>
+      <a href="#">Blog</a>
+      <a href="#">Changelog</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+    <div class="footer-copy">&copy; 2026 Linkforge. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
 </html>
