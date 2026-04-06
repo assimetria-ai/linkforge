@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Logo mark in white — for use on dark backgrounds -->
+  <defs>
+    <clipPath id="lf-dark-left">
+      <rect x="0" y="0" width="256" height="512"/>
+    </clipPath>
+    <clipPath id="lf-dark-right">
+      <rect x="256" y="0" width="256" height="512"/>
+    </clipPath>
+  </defs>
+
+  <!-- Ring 2 right portion (white, slightly transparent for depth) -->
+  <g clip-path="url(#lf-dark-right)">
+    <g transform="translate(256,256) rotate(45)">
+      <rect x="-140" y="-55" width="280" height="110" rx="40"
+            fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="40"/>
+    </g>
+  </g>
+
+  <!-- Ring 1 full (white) -->
+  <g transform="translate(256,256) rotate(-45)">
+    <rect x="-140" y="-55" width="280" height="110" rx="40"
+          fill="none" stroke="#FFFFFF" stroke-width="40"/>
+  </g>
+
+  <!-- Ring 2 left portion (white, slightly transparent) -->
+  <g clip-path="url(#lf-dark-left)">
+    <g transform="translate(256,256) rotate(45)">
+      <rect x="-140" y="-55" width="280" height="110" rx="40"
+            fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="40"/>
+    </g>
+  </g>
+</svg>

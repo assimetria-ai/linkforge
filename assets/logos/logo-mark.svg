@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="lf-mark-left">
+      <rect x="0" y="0" width="256" height="512"/>
+    </clipPath>
+    <clipPath id="lf-mark-right">
+      <rect x="256" y="0" width="256" height="512"/>
+    </clipPath>
+  </defs>
+
+  <!-- Ring 2 (cyan) right portion — drawn first so Ring 1 overlaps it on the right -->
+  <g clip-path="url(#lf-mark-right)">
+    <g transform="translate(256,256) rotate(45)">
+      <rect x="-140" y="-55" width="280" height="110" rx="40"
+            fill="none" stroke="#06B6D4" stroke-width="40"/>
+    </g>
+  </g>
+
+  <!-- Ring 1 (violet) full — in front on right, behind Ring 2 on left -->
+  <g transform="translate(256,256) rotate(-45)">
+    <rect x="-140" y="-55" width="280" height="110" rx="40"
+          fill="none" stroke="#8B5CF6" stroke-width="40"/>
+  </g>
+
+  <!-- Ring 2 (cyan) left portion — drawn on top of Ring 1 on left side -->
+  <g clip-path="url(#lf-mark-left)">
+    <g transform="translate(256,256) rotate(45)">
+      <rect x="-140" y="-55" width="280" height="110" rx="40"
+            fill="none" stroke="#06B6D4" stroke-width="40"/>
+    </g>
+  </g>
+</svg>

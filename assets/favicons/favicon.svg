@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Favicon: rounded-square brand color background + white chain link mark -->
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#8B5CF6"/>
+
+  <defs>
+    <clipPath id="lf-fav-left">
+      <rect x="0" y="0" width="256" height="512"/>
+    </clipPath>
+    <clipPath id="lf-fav-right">
+      <rect x="256" y="0" width="256" height="512"/>
+    </clipPath>
+  </defs>
+
+  <!-- Ring 2 (white, 65% opacity) right portion -->
+  <g clip-path="url(#lf-fav-right)">
+    <g transform="translate(256,256) rotate(45)">
+      <rect x="-118" y="-46" width="236" height="92" rx="34"
+            fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="34"/>
+    </g>
+  </g>
+
+  <!-- Ring 1 (white) full -->
+  <g transform="translate(256,256) rotate(-45)">
+    <rect x="-118" y="-46" width="236" height="92" rx="34"
+          fill="none" stroke="#FFFFFF" stroke-width="34"/>
+  </g>
+
+  <!-- Ring 2 (white, 65% opacity) left portion — in front -->
+  <g clip-path="url(#lf-fav-left)">
+    <g transform="translate(256,256) rotate(45)">
+      <rect x="-118" y="-46" width="236" height="92" rx="34"
+            fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="34"/>
+    </g>
+  </g>
+</svg>
